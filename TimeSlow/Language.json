@@ -5,7 +5,10 @@
     "MissReqArg": "Missing Required Argument",
     "AccessDenied": "Access Denied",
     "Ping": "Ping",
-    "Pong": "Pong"
+    "Pong": "Pong",
+    "Parameter": "Parameter",
+    "CannotSet": "cannot be set to",
+    "NotFound": "not found"
   },
   "ru": {
     "UnKnCommand": "Неизвестная команда",
@@ -13,6 +16,9 @@
     "MissReqArg": "Отсутствует необходимый аргумент",
     "AccessDenied": "Доступ воспрещён",
     "Ping": "Пинг",
-    "Pong": "Понг"
+    "Pong": "Понг",
+    "Parameter": "Параметр",
+    "CannotSet": "не может быть устанрвлен в значение",
+    "NotFound": "не найден"
   }
 }
