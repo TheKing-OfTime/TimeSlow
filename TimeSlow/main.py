@@ -96,14 +96,14 @@ class BotEngine(commands.Cog):
         mod_possible_value = [1, 2, 3]
         language_possible_value = ['ru', 'en']
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id};")
-        language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
         if count == 1:
+            language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
             if option == config()["db_guild_possible_options"][0]:
                 if mod_possible_value.count(int(value)) == 1:
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
                     await ctx.message.add_reaction(agree_emoji())
                 else:
-                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} {value}")
+                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
                     await ctx.message.add_reaction(disagree_emoji())
 
             elif option == config()["db_guild_possible_options"][1]:
@@ -125,7 +125,7 @@ class BotEngine(commands.Cog):
                     await db_dump_req(f'UPDATE guilds SET language = "{value}" WHERE id = {ctx.guild.id};')
                     await ctx.message.add_reaction(agree_emoji())
                 else:
-                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} {value}")
+                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
                     await ctx.message.add_reaction(disagree_emoji())
 
             else:
@@ -143,15 +143,26 @@ class BotEngine(commands.Cog):
 
     @commands.command()
     async def ping(self, ctx):
-        language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
-        print(language)
-        ping = round(bot.latency * 1000, 2)
-        if ping < 300:
-            color = 0x00ff00
+        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id};")
+        if count == 1:
+            language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+            ping = round(bot.latency * 1000, 2)
+            if ping < 300:
+                color = 0x00ff00
+            else:
+                color = 0xff0000
+            embed = discord.Embed(title=f"{lang()[language]['Pong']}!", description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
+            await ctx.send(embed=embed)
+
+        elif count == 0:
+            await ctx.send(f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
+            await ctx.message.add_reaction(disagree_emoji())
+
         else:
-            color = 0xff0000
-        embed = discord.Embed(title=f"{lang()[language]['Pong']}!", description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
-        await ctx.send(embed=embed)
+            print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+            await dev.send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+            await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
+            await ctx.message.add_reaction(disagree_emoji())
 
     @bot.event
     async def on_ready():
