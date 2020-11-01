@@ -4,8 +4,6 @@ import json
 import sqlite3
 from datetime import datetime
 
-data = sqlite3.connect("Data.db")
-bot = commands.Bot(command_prefix=config()["prefix"])
 
 def config():
     with open('Config.json', 'r') as read_file:
@@ -15,6 +13,14 @@ def config():
 def lang():
     with open('Language.json', 'r', encoding='utf-8') as read_file:
         return json.load(read_file)
+
+
+data = sqlite3.connect("Data.db")
+bot = commands.Bot(command_prefix=config()["prefix"])
+
+
+def developer():
+    return bot.get_user(config()["devID"])
 
 
 async def db_dump_req(sql_request):
@@ -30,7 +36,6 @@ async def db_load_req(sql_request):
     return cur.fetchone()[0]
 
 
-
 def convert_to_member(value: discord.Member):
     return value
 
@@ -41,6 +46,10 @@ def convert_to_channel(value: discord.TextChannel):
 
 def convert_to_role(value: discord.Role):
     return value
+
+
+def agree_emoji():
+    return bot.get_emoji(764938637862371348)
 
 
 def disagree_emoji():
@@ -57,42 +66,69 @@ class BotEngine(commands.Cog):
         self.bot = bot
 
     @commands.command()
+    @commands.check(is_developer)
     async def setup(self, ctx):
-        if ctx.guild.region == "russia0":
-            language = "ru"
+        dev = developer()
+        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
+        if count == 0:
+            print(ctx.guild.region)
+            if str(ctx.guild.region) == "russia":
+                language = "ru"
+            else:
+                language = "en"
+            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, None, bool(1), 0, 0, language)
+            cur = data.cursor()
+            cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
+            data.commit()
+            await ctx.message.add_reaction(agree_emoji())
+        elif count == 1:
+            await ctx.send("Действия не требуются")
         else:
-            language = "en"
-        guildvalues = (ctx.guild.id, ctx.guild.name, 2, datetime, 1, 0, 0, language)
-        cur = data.cursor()
-        cur.execute(f"INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
-        data.commit()
-        cur.close()
-        await ctx.add_reaction(disagree_emoji())
+            print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+            await dev.send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+            await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
+            await ctx.message.add_reaction(disagree_emoji())
 
     @commands.command(aliases=['Settings', 's'])
+    @commands.check(is_developer)
     async def settings(self, ctx, option, value):
+        dev = developer()
         mod_possible_value = [1, 2, 3]
-        if option == config()["db_guild_possible_options"][0]:
-            if mod_possible_value.count(value) == 1:
-                await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
-            else:
-                await ctx.send(f"{lang()['ru']['Parameter']} `{option}` {lang()['ru']['CannotSet']} {value}")
-                await ctx.add_reaction(disagree_emoji())
+        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
+        if count == 1:
+            if option == config()["db_guild_possible_options"][0]:
+                if mod_possible_value.count(int(value)) == 1:
+                    await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
+                    await ctx.message.add_reaction(agree_emoji())
+                else:
+                    await ctx.send(f"{lang()['ru']['Parameter']} `{option}` {lang()['ru']['CannotSet']} {value}")
+                    await ctx.message.add_reaction(disagree_emoji())
 
-        elif option == config()["db_guild_possible_options"][1]:
-            role = convert_to_role(value)
-            await db_dump_req(f"UPDATE guilds SET mute_role_id = {int(role.id)} WHERE id = {ctx.guild.id};")
+            elif option == config()["db_guild_possible_options"][1]:
+                role = convert_to_role(value)
+                await db_dump_req(f"UPDATE guilds SET mute_role_id = {int(role.id)} WHERE id = {ctx.guild.id};")
+                await ctx.message.add_reaction(agree_emoji())
 
-        elif option == config()["db_guild_possible_options"][2]:
-            if value != 0:
-                txtchannel = convert_to_channel(value)
-                Id = txtchannel.id
+            elif option == config()["db_guild_possible_options"][2]:
+                if value != 0:
+                    txtchannel = convert_to_channel(value)
+                    channelid = txtchannel.id
+                else:
+                    channelid = 0
+                await db_dump_req(f"UPDATE guilds SET log_channel_id = {int(channelid)} WHERE id = {ctx.guild.id};")
+                await ctx.message.add_reaction(agree_emoji())
             else:
-                Id = 0
-            await db_dump_req(f"UPDATE guilds SET log_channel_id = {int(Id)} WHERE id = {ctx.guild.id};")
+                await ctx.send(f"{lang()['ru']['Parameter']} `{option}` {lang()['ru']['NotFound']}")
+                await ctx.message.add_reaction(disagree_emoji())
+
+        elif count == 0:
+            await ctx.send(f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
+            await ctx.message.add_reaction(disagree_emoji())
         else:
-            await ctx.send(f"{lang()['ru']['Parameter']} `{option}` {lang()['ru']['NotFound']}")
-            await ctx.add_reaction(disagree_emoji())
+            print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+            await dev.send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+            await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
+            await ctx.message.add_reaction(disagree_emoji())
 
     @commands.command()
     async def ping(self, ctx):
