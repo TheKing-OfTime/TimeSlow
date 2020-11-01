@@ -1,8 +1,8 @@
 {
   "en": {
     "UnKnCommand": "Unknown command",
-    "BArg": "Bad Argument",
-    "MissReqArg": "Missing Required Argument",
+    "BArg": "Bad argument",
+    "MissReqArg": "Missing required argument",
     "AccessDenied": "Access Denied",
     "Ping": "Ping",
     "Pong": "Pong",
@@ -18,7 +18,7 @@
     "Ping": "Пинг",
     "Pong": "Понг",
     "Parameter": "Параметр",
-    "CannotSet": "не может быть устанрвлен в значение",
+    "CannotSet": "не может быть установлен в значение",
     "NotFound": "не найден"
   }
 }

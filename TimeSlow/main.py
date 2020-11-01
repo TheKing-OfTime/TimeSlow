@@ -94,14 +94,16 @@ class BotEngine(commands.Cog):
     async def settings(self, ctx, option, value):
         dev = developer()
         mod_possible_value = [1, 2, 3]
-        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
+        language_possible_value = ['ru', 'en']
+        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id};")
+        language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
         if count == 1:
             if option == config()["db_guild_possible_options"][0]:
                 if mod_possible_value.count(int(value)) == 1:
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
                     await ctx.message.add_reaction(agree_emoji())
                 else:
-                    await ctx.send(f"{lang()['ru']['Parameter']} `{option}` {lang()['ru']['CannotSet']} {value}")
+                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} {value}")
                     await ctx.message.add_reaction(disagree_emoji())
 
             elif option == config()["db_guild_possible_options"][1]:
@@ -117,8 +119,17 @@ class BotEngine(commands.Cog):
                     channelid = 0
                 await db_dump_req(f"UPDATE guilds SET log_channel_id = {int(channelid)} WHERE id = {ctx.guild.id};")
                 await ctx.message.add_reaction(agree_emoji())
+
+            elif option == config()["db_guild_possible_options"][3]:
+                if language_possible_value.count(str(value)) == 1:
+                    await db_dump_req(f'UPDATE guilds SET language = "{value}" WHERE id = {ctx.guild.id};')
+                    await ctx.message.add_reaction(agree_emoji())
+                else:
+                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} {value}")
+                    await ctx.message.add_reaction(disagree_emoji())
+
             else:
-                await ctx.send(f"{lang()['ru']['Parameter']} `{option}` {lang()['ru']['NotFound']}")
+                await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['NotFound']}")
                 await ctx.message.add_reaction(disagree_emoji())
 
         elif count == 0:
@@ -132,12 +143,14 @@ class BotEngine(commands.Cog):
 
     @commands.command()
     async def ping(self, ctx):
+        language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+        print(language)
         ping = round(bot.latency * 1000, 2)
         if ping < 300:
             color = 0x00ff00
         else:
             color = 0xff0000
-        embed = discord.Embed(title=f"{lang()['ru']['Pong']}!", description=f"{lang()['ru']['Ping']}: `{ping}ms`", color=color)
+        embed = discord.Embed(title=f"{lang()[language]['Pong']}!", description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
         await ctx.send(embed=embed)
 
     @bot.event
@@ -147,20 +160,21 @@ class BotEngine(commands.Cog):
 
     @bot.event
     async def on_command_error(ctx, error):
+        language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
         if isinstance(error, commands.CommandNotFound):
-            await ctx.send(str(lang()["ru"]["UnKnCommand"]))
+            await ctx.send(str(lang()[language]["UnKnCommand"]))
             await ctx.message.add_reaction(disagree_emoji())
 
         if isinstance(error, commands.BadArgument):
-            await ctx.send(str(lang()["ru"]["BArg"]))
+            await ctx.send(str(lang()[language]["BArg"]))
             await ctx.message.add_reaction(disagree_emoji())
 
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(str(lang()["ru"]["MissReqArg"]))
+            await ctx.send(str(lang()[language]["MissReqArg"]))
             await ctx.message.add_reaction(disagree_emoji())
 
         if isinstance(error, commands.CheckFailure):
-            await ctx.send(str(lang()["ru"]["AccessDenied"]))
+            await ctx.send(str(lang()[language]["AccessDenied"]))
             await ctx.message.add_reaction(disagree_emoji())
 
 
