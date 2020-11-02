@@ -3,6 +3,7 @@ from datetime import datetime
 from discord.ext import commands
 import json
 import sqlite3
+import re
 
 
 def config():
@@ -41,7 +42,8 @@ async def db_valid_cheker(ctx):
     if count == 1:
         return True
     elif count == 0:
-        await ctx.send(f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
+        await ctx.send(
+            f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
         await ctx.message.add_reaction(disagree_emoji())
         return False
     else:
@@ -57,16 +59,27 @@ async def get_guild_language(guild):
     return language
 
 
-def convert_to_member(value: discord.Member):
+def convert_to_member(value):
+    print(value)
     return value
 
 
-def convert_to_channel(value: discord.TextChannel):
-    return value
+def convert_to_channel(value):
+    try:
+        channelid = re.sub("[^0-9]", "", str(value))
+        channel = bot.get_channel(int(channelid))
+    except:
+        channel = None
+    return channel
 
 
-def convert_to_role(value: discord.Role):
-    return value
+def convert_to_role(guild, value):
+    try:
+        roleid = re.sub("[^0-9]", "", str(value))
+        role = guild.get_role(int(roleid))
+    except:
+        role = Non
+    return role
 
 
 def agree_emoji():

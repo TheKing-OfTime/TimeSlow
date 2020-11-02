@@ -10,24 +10,23 @@ class WorkWithGuildsDB(commands.Cog):
         self.bot = bot
 
     @commands.command(aliases=['Guildinfo', 'ginfo'])
-    @commands.check(is_developer)
     async def guildinfo(self, ctx):
         if await db_valid_cheker(ctx):
             language = await get_guild_language(ctx.guild)
             cur = data.cursor()
             cur.execute(f"SELECT * FROM guilds WHERE id={ctx.guild.id}")
             guild_data = cur.fetchone()
-            print(guild_data)
             if guild_data[5] != 0:
-                mute_role = convert_to_role(guild_data[5])
+                mute_role = f'<@&{guild_data[5]}>'
             else:
                 mute_role = disagree_emoji()
 
             if guild_data[6] != 0:
-                log_channel = convert_to_channel(guild_data[6])
+                log_channel = f'<#{guild_data[6]}>'
             else:
                 log_channel = disagree_emoji()
-            embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Guild']}", colour=discord.Colour.blurple())
+            embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Guild']}",
+                                  colour=discord.Colour.blurple())
             embed.add_field(name="Parameter", value=f'''
 Id
 Mod
@@ -52,7 +51,6 @@ Language''', inline=True)
     async def setup(self, ctx):
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
         if count == 0:
-            print(ctx.guild.region)
             if str(ctx.guild.region) == "russia":
                 language = "ru"
             else:
@@ -82,18 +80,31 @@ Language''', inline=True)
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
                     await ctx.message.add_reaction(agree_emoji())
                 else:
-                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                    await ctx.send(
+                        f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
                     await ctx.message.add_reaction(disagree_emoji())
 
             elif option == config()["db_guild_possible_options"][1]:
-                role = convert_to_role(value)
-                await db_dump_req(f"UPDATE guilds SET mute_role_id = {int(role.id)} WHERE id = {ctx.guild.id};")
+                if value != '0':
+                    role = convert_to_role(ctx.guild, value)
+                    if role is not None:
+                        role_id = role.id
+                    else:
+                        await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                        await ctx.message.add_reaction(disagree_emoji())
+                else:
+                    role_id = 0
+                await db_dump_req(f"UPDATE guilds SET mute_role_id = {int(role_id)} WHERE id = {ctx.guild.id};")
                 await ctx.message.add_reaction(agree_emoji())
 
             elif option == config()["db_guild_possible_options"][2]:
-                if value != 0:
+                if value != '0':
                     txtchannel = convert_to_channel(value)
-                    channelid = txtchannel.id
+                    if txtchannel is not None:
+                        channelid = txtchannel.id
+                    else:
+                        await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                        await ctx.message.add_reaction(disagree_emoji())
                 else:
                     channelid = 0
                 await db_dump_req(f"UPDATE guilds SET log_channel_id = {int(channelid)} WHERE id = {ctx.guild.id};")
