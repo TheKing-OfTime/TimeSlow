@@ -78,7 +78,7 @@ def convert_to_role(guild, value):
         roleid = re.sub("[^0-9]", "", str(value))
         role = guild.get_role(int(roleid))
     except:
-        role = Non
+        role = None
     return role
 
 

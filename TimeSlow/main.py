@@ -42,8 +42,8 @@ Language''', inline=True)
 {mute_role} 
 {log_channel} 
 {language} ''', inline=True)
-            embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-            embed.set_footer(text=f'{ctx.guild.name}', icon_url=ctx.guild.icon_url)
+            embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+            embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon_url)
             await ctx.send(embed=embed)
 
     @commands.command()
@@ -55,7 +55,7 @@ Language''', inline=True)
                 language = "ru"
             else:
                 language = "en"
-            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, datetime, bool(1), 0, 0, language)
+            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, None, bool(1), 0, 0, language)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
@@ -80,8 +80,7 @@ Language''', inline=True)
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
                     await ctx.message.add_reaction(agree_emoji())
                 else:
-                    await ctx.send(
-                        f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                    await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
                     await ctx.message.add_reaction(disagree_emoji())
 
             elif option == config()["db_guild_possible_options"][1]:
@@ -128,6 +127,19 @@ class MainCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.Cog.listener()
+    async def on_message(self, ctx):
+        if await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}"):
+            cur = data.cursor()
+            cur.execute(f"SELECT * FROM guilds WHERE id={ctx.guild.id}")
+            guild_data = cur.fetchone()
+            if guild_data[2] == 1:
+                pass
+            elif guild_data[2] == 2:
+                pass
+            elif guild_data[3] == 3:
+                pass
+
     @commands.command()
     async def ping(self, ctx):
         if await db_valid_cheker(ctx):
@@ -149,7 +161,10 @@ class MainCog(commands.Cog):
 
     @bot.event
     async def on_command_error(ctx, error):
-        language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+        try:
+            language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+        except TypeError:
+            language = 'en'
         if isinstance(error, commands.CommandNotFound):
             await ctx.send(str(lang()[language]["UnKnCommand"]))
             await ctx.message.add_reaction(disagree_emoji())
