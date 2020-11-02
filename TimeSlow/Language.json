@@ -8,7 +8,10 @@
     "Pong": "Pong",
     "Parameter": "Parameter",
     "CannotSet": "cannot be set to",
-    "NotFound": "not found"
+    "NotFound": "not found",
+    "InfoAbout": "Info about",
+    "Guild": "guild",
+    "Member": "member"
   },
   "ru": {
     "UnKnCommand": "Неизвестная команда",
@@ -19,6 +22,9 @@
     "Pong": "Понг",
     "Parameter": "Параметр",
     "CannotSet": "не может быть установлен в значение",
-    "NotFound": "не найден"
+    "NotFound": "не найден",
+    "InfoAbout": "Информация о",
+    "Guild": "гильдии",
+    "Member": "пользователе"
   }
 }

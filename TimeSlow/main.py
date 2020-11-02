@@ -1,74 +1,55 @@
+from Lib import *
 import discord
-from discord.ext import commands
-import json
-import sqlite3
 from datetime import datetime
+from discord.ext import commands
 
 
-def config():
-    with open('Config.json', 'r') as read_file:
-        return json.load(read_file)
-
-
-def lang():
-    with open('Language.json', 'r', encoding='utf-8') as read_file:
-        return json.load(read_file)
-
-
-data = sqlite3.connect("Data.db")
-bot = commands.Bot(command_prefix=config()["prefix"])
-
-
-def developer():
-    return bot.get_user(config()["devID"])
-
-
-async def db_dump_req(sql_request):
-    cur = data.cursor()
-    cur.execute(sql_request)
-    data.commit()
-    cur.close()
-
-
-async def db_load_req(sql_request):
-    cur = data.cursor()
-    cur.execute(sql_request)
-    return cur.fetchone()[0]
-
-
-def convert_to_member(value: discord.Member):
-    return value
-
-
-def convert_to_channel(value: discord.TextChannel):
-    return value
-
-
-def convert_to_role(value: discord.Role):
-    return value
-
-
-def agree_emoji():
-    return bot.get_emoji(764938637862371348)
-
-
-def disagree_emoji():
-    return bot.get_emoji(765152575557074955)
-
-
-async def is_developer(ctx):
-    return ctx.author.id == config()["devID"]
-
-
-class BotEngine(commands.Cog):
+class WorkWithGuildsDB(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.command(aliases=['Guildinfo', 'ginfo'])
+    @commands.check(is_developer)
+    async def guildinfo(self, ctx):
+        if await db_valid_cheker(ctx):
+            language = await get_guild_language(ctx.guild)
+            cur = data.cursor()
+            cur.execute(f"SELECT * FROM guilds WHERE id={ctx.guild.id}")
+            guild_data = cur.fetchone()
+            print(guild_data)
+            if guild_data[5] != 0:
+                mute_role = convert_to_role(guild_data[5])
+            else:
+                mute_role = disagree_emoji()
+
+            if guild_data[6] != 0:
+                log_channel = convert_to_channel(guild_data[6])
+            else:
+                log_channel = disagree_emoji()
+            embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Guild']}", colour=discord.Colour.blurple())
+            embed.add_field(name="Parameter", value=f'''
+Id
+Mod
+Join time
+Mute role
+Log channel
+Language''', inline=True)
+
+            embed.add_field(name="Value", value=f'''
+{guild_data[0]} 
+{guild_data[2]} 
+{guild_data[3]} 
+{mute_role} 
+{log_channel} 
+{language} ''', inline=True)
+            embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+            embed.set_footer(text=f'{ctx.guild.name}', icon_url=ctx.guild.icon_url)
+            await ctx.send(embed=embed)
+
     @commands.command()
     @commands.check(is_developer)
     async def setup(self, ctx):
-        dev = developer()
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
         if count == 0:
             print(ctx.guild.region)
@@ -76,7 +57,7 @@ class BotEngine(commands.Cog):
                 language = "ru"
             else:
                 language = "en"
-            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, None, bool(1), 0, 0, language)
+            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, datetime, bool(1), 0, 0, language)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
@@ -85,19 +66,17 @@ class BotEngine(commands.Cog):
             await ctx.send("Действия не требуются")
         else:
             print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-            await dev.send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+            await developer().send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
             await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
             await ctx.message.add_reaction(disagree_emoji())
 
     @commands.command(aliases=['Settings', 's'])
     @commands.check(is_developer)
     async def settings(self, ctx, option, value):
-        dev = developer()
         mod_possible_value = [1, 2, 3]
         language_possible_value = ['ru', 'en']
-        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id};")
-        if count == 1:
-            language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+        if await db_valid_cheker(ctx):
+            language = await get_guild_language(ctx.guild)
             if option == config()["db_guild_possible_options"][0]:
                 if mod_possible_value.count(int(value)) == 1:
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
@@ -132,41 +111,29 @@ class BotEngine(commands.Cog):
                 await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['NotFound']}")
                 await ctx.message.add_reaction(disagree_emoji())
 
-        elif count == 0:
-            await ctx.send(f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
-            await ctx.message.add_reaction(disagree_emoji())
-        else:
-            print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-            await dev.send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-            await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
-            await ctx.message.add_reaction(disagree_emoji())
+
+class MainCog(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
 
     @commands.command()
     async def ping(self, ctx):
-        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id};")
-        if count == 1:
-            language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+        if await db_valid_cheker(ctx):
+            language = await get_guild_language(ctx.guild)
             ping = round(bot.latency * 1000, 2)
             if ping < 300:
                 color = 0x00ff00
             else:
                 color = 0xff0000
-            embed = discord.Embed(title=f"{lang()[language]['Pong']}!", description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
+            embed = discord.Embed(title=f"{lang()[language]['Pong']}!",
+                                  description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
             await ctx.send(embed=embed)
-
-        elif count == 0:
-            await ctx.send(f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
-            await ctx.message.add_reaction(disagree_emoji())
-
-        else:
-            print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-            await dev.send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-            await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
-            await ctx.message.add_reaction(disagree_emoji())
 
     @bot.event
     async def on_ready():
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{config()['prefix']}help"))
+        await bot.change_presence(
+            activity=discord.Activity(type=discord.ActivityType.listening, name=f"{config()['prefix']}help"))
         print('TimeSlow инициализирован')
 
     @bot.event
@@ -189,5 +156,6 @@ class BotEngine(commands.Cog):
             await ctx.message.add_reaction(disagree_emoji())
 
 
-bot.add_cog(BotEngine(bot))
+bot.add_cog(MainCog(bot))
+bot.add_cog(WorkWithGuildsDB(bot))
 bot.run(config()["token"])
