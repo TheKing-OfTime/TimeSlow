@@ -1,5 +1,6 @@
 from Lib import *
 import discord
+import asyncio
 from datetime import datetime
 from discord.ext import commands
 
@@ -49,24 +50,28 @@ Language''', inline=True)
     @commands.command()
     @commands.check(is_developer)
     async def setup(self, ctx):
+        embed = discord.Embed(title="Инициализация", description="Пожалуйста подождите...", colour=discord.Colour.blurple())
+        emb_message = await ctx.send(embed=embed)
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
         if count == 0:
             if str(ctx.guild.region) == "russia":
                 language = "ru"
             else:
                 language = "en"
-            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, None, bool(1), 0, 0, language)
+            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, datetime.now(), bool(1), 0, 0, language)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
-            await ctx.message.add_reaction(agree_emoji())
+            embed = discord.Embed(title="Инициализация завершена", description="Данные занесены в базу данных", colour=discord.Colour.green())
+            await emb_message.edit(embed=embed)
         elif count == 1:
-            await ctx.send("Действия не требуются")
+            embed = discord.Embed(title="Инициализация завершена", description="Все в порядке", colour=discord.Colour.green())
+            await emb_message.edit(embed=embed)
         else:
-            print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-            await developer().send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-            await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
-            await ctx.message.add_reaction(disagree_emoji())
+            print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime.now())
+            await developer().send(f'DataBaseError {ctx.guild.name} {ctx.guild.id} {datetime.now()}')
+            embed = discord.Embed(title="Инициализация не завершена", description="Критическая ошибка базы данных, разработчик уже извещён о проблеме", colour=discord.Colour.red())
+            await emb_message.edit(embed=embed)
 
     @commands.command(aliases=['Settings', 's'])
     @commands.check(is_developer)
@@ -128,10 +133,10 @@ class MainCog(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_message(self, ctx):
-        if await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}"):
+    async def on_message(self, message):
+        if await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {message.guild.id}"):
             cur = data.cursor()
-            cur.execute(f"SELECT * FROM guilds WHERE id={ctx.guild.id}")
+            cur.execute(f"SELECT * FROM guilds WHERE id={message.guild.id}")
             guild_data = cur.fetchone()
             if guild_data[2] == 1:
                 pass
