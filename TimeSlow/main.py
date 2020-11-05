@@ -52,6 +52,8 @@ Language''', inline=True)
     async def setup(self, ctx):
         embed = discord.Embed(title="Инициализация", description="Пожалуйста подождите...", colour=discord.Colour.blurple())
         emb_message = await ctx.send(embed=embed)
+        await asyncio.sleep(1)
+        embed = discord.Embed(title="Инициализация завершена")
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
         if count == 0:
             if str(ctx.guild.region) == "russia":
@@ -62,16 +64,31 @@ Language''', inline=True)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
-            embed = discord.Embed(title="Инициализация завершена", description="Данные занесены в базу данных", colour=discord.Colour.green())
-            await emb_message.edit(embed=embed)
+            embed.add_field(name="База данных", value="Данные занесены в базу данных")
+            if embed.colour != discord.Colour.orange() and embed.colour != discord.Colour.red():
+                embed.colour = discord.Colour.green()
         elif count == 1:
-            embed = discord.Embed(title="Инициализация завершена", description="Все в порядке", colour=discord.Colour.green())
-            await emb_message.edit(embed=embed)
+            embed.add_field(name= "База данных", value="Всё в порядке")
+            if embed.colour != discord.Colour.orange() and embed.colour != discord.Colour.red():
+                embed.colour = discord.Colour.green()
         else:
             print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime.now())
             await developer().send(f'DataBaseError {ctx.guild.name} {ctx.guild.id} {datetime.now()}')
-            embed = discord.Embed(title="Инициализация не завершена", description="Критическая ошибка базы данных, разработчик уже извещён о проблеме", colour=discord.Colour.red())
-            await emb_message.edit(embed=embed)
+            embed.add_field(name="База данных", value="Критическая ошибка")
+            embed.colour = discord.Colour.red()
+            await ctx.send("Критическая ошибка базы данных, разработчик уже извещён о проблеме")
+
+        Bot = ctx.guild.get_member(750415350348382249)
+        if Bot.guild_permissions.manage_messages and Bot.guild_permissions.manage_roles:
+            embed.add_field(name="Права", value="Всё в порядке")
+            if embed.colour != discord.Colour.orange() and embed.colour != discord.Colour.red():
+                embed.colour = discord.Colour.green()
+        else:
+            embed.add_field(name="Права", value="Отсутствуют некоторые необходимые права")
+            if embed.colour != discord.Colour.red():
+                embed.colour = discord.Colour.orange()
+            await ctx.send("Проверте права бота, необходимые права для нормального функционирования: Управление сообщениями, Управление ролями")
+        await emb_message.edit(embed=embed)
 
     @commands.command(aliases=['Settings', 's'])
     @commands.check(is_developer)
@@ -134,16 +151,17 @@ class MainCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {message.guild.id}"):
-            cur = data.cursor()
-            cur.execute(f"SELECT * FROM guilds WHERE id={message.guild.id}")
-            guild_data = cur.fetchone()
-            if guild_data[2] == 1:
-                pass
-            elif guild_data[2] == 2:
-                pass
-            elif guild_data[3] == 3:
-                pass
+        if message.channel == discord.TextChannel:
+            if await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {message.guild.id}"):
+                cur = data.cursor()
+                cur.execute(f"SELECT * FROM guilds WHERE id={message.guild.id}")
+                guild_data = cur.fetchone()
+                if guild_data[2] == 1:
+                    pass
+                elif guild_data[2] == 2:
+                    pass
+                elif guild_data[3] == 3:
+                    pass
 
     @commands.command()
     async def ping(self, ctx):
