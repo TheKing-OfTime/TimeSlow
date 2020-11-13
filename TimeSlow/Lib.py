@@ -38,25 +38,35 @@ async def db_load_req(sql_request):
 
 
 async def db_valid_cheker(ctx):
-    count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
+    try:
+        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {ctx.guild.id}")
+    except sqlite3.OperationalError:
+        print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime.now())
+        await developer().send(f'DataBaseError {ctx.guild.name} {ctx.guild.id} {datetime.now()}')
+        await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
+        await ctx.message.add_reaction(disagree_emoji())
+        return False
+
     if count == 1:
         return True
     elif count == 0:
-        await ctx.send(
-            f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
+        await ctx.send(f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
         await ctx.message.add_reaction(disagree_emoji())
         return False
     else:
         print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
-        await developer().send('DataBaseError', ctx.guild.name, ctx.guild.id, datetime)
+        await developer().send(f'DataBaseError {ctx.guild.name} {ctx.guild.id} {datetime.now()}')
         await ctx.send('Критическая ошибка базы данных, разработчик уже извёщен об ошибке')
         await ctx.message.add_reaction(disagree_emoji())
         return False
 
 
-async def get_guild_language(guild):
-    language = await db_load_req(f"SELECT language FROM guilds WHERE id = {guild.id};")
-    return language
+async def get_guild_language(ctx):
+    if await db_valid_cheker(ctx):
+        language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+        return language
+    else:
+        return "ru"
 
 
 def convert_to_member(value):
@@ -84,6 +94,10 @@ def convert_to_role(guild, value):
 
 def agree_emoji():
     return bot.get_emoji(764938637862371348)
+
+
+def warning_emoji():
+    return bot.get_emoji(776432019940573244)
 
 
 def disagree_emoji():

@@ -13,7 +13,7 @@ class WorkWithGuildsDB(commands.Cog):
     @commands.command(aliases=['Guildinfo', 'ginfo'])
     async def guildinfo(self, ctx):
         if await db_valid_cheker(ctx):
-            language = await get_guild_language(ctx.guild)
+            language = await get_guild_language(ctx)
             cur = data.cursor()
             cur.execute(f"SELECT * FROM guilds WHERE id={ctx.guild.id}")
             guild_data = cur.fetchone()
@@ -28,15 +28,15 @@ class WorkWithGuildsDB(commands.Cog):
                 log_channel = disagree_emoji()
             embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Guild']}",
                                   colour=discord.Colour.blurple())
-            embed.add_field(name="Parameter", value=f'''
+            embed.add_field(name="Параметр", value=f'''
 Id
-Mod
-Join time
-Mute role
-Log channel
-Language''', inline=True)
+Режим
+Дата первого включения
+Роль мута
+Канал логирования
+Язык''', inline=True)
 
-            embed.add_field(name="Value", value=f'''
+            embed.add_field(name="Значение", value=f'''
 {guild_data[0]} 
 {guild_data[2]} 
 {guild_data[3]} 
@@ -64,30 +64,30 @@ Language''', inline=True)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
-            embed.add_field(name="База данных", value="Данные занесены в базу данных")
+            embed.add_field(name=f"База данных: {agree_emoji()}", value="Данные занесены в базу данных")
             if embed.colour != discord.Colour.orange() and embed.colour != discord.Colour.red():
                 embed.colour = discord.Colour.green()
         elif count == 1:
-            embed.add_field(name= "База данных", value="Всё в порядке")
+            embed.add_field(name=f"База данных: {agree_emoji()}", value="Всё в порядке")
             if embed.colour != discord.Colour.orange() and embed.colour != discord.Colour.red():
                 embed.colour = discord.Colour.green()
         else:
             print('DataBaseError', ctx.guild.name, ctx.guild.id, datetime.now())
-            await developer().send(f'DataBaseError {ctx.guild.name} {ctx.guild.id} {datetime.now()}')
-            embed.add_field(name="База данных", value="Критическая ошибка")
+            await developer().send(f'DataBaseError {ctx.guild.name} {ctx.guild.id} {datetime.date()}')
+            embed.add_field(name=f"База данных: {disagree_emoji()}", value="Критическая ошибка")
             embed.colour = discord.Colour.red()
             await ctx.send("Критическая ошибка базы данных, разработчик уже извещён о проблеме")
 
         Bot = ctx.guild.get_member(750415350348382249)
         if Bot.guild_permissions.manage_messages and Bot.guild_permissions.manage_roles:
-            embed.add_field(name="Права", value="Всё в порядке")
+            embed.add_field(name=f"Права: {agree_emoji()}", value="Всё в порядке")
             if embed.colour != discord.Colour.orange() and embed.colour != discord.Colour.red():
                 embed.colour = discord.Colour.green()
         else:
-            embed.add_field(name="Права", value="Отсутствуют некоторые необходимые права")
+            embed.add_field(name=f"Права: {warning_emoji()}", value="Отсутствуют некоторые необходимые права")
             if embed.colour != discord.Colour.red():
                 embed.colour = discord.Colour.orange()
-            await ctx.send("Проверте права бота, необходимые права для нормального функционирования: Управление сообщениями, Управление ролями")
+            await ctx.send("Проверте права бота, возможно у него отсутствуют права: Управление сообщениями, Управление ролями")
         await emb_message.edit(embed=embed)
 
     @commands.command(aliases=['Settings', 's'])
@@ -96,7 +96,7 @@ Language''', inline=True)
         mod_possible_value = [1, 2, 3]
         language_possible_value = ['ru', 'en']
         if await db_valid_cheker(ctx):
-            language = await get_guild_language(ctx.guild)
+            language = await get_guild_language(ctx)
             if option == config()["db_guild_possible_options"][0]:
                 if mod_possible_value.count(int(value)) == 1:
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
@@ -166,12 +166,14 @@ class MainCog(commands.Cog):
     @commands.command()
     async def ping(self, ctx):
         if await db_valid_cheker(ctx):
-            language = await get_guild_language(ctx.guild)
+            language = await get_guild_language(ctx)
             ping = round(bot.latency * 1000, 2)
-            if ping < 300:
-                color = 0x00ff00
+            if ping < 180:
+                color = discord.Colour.green()
+            elif ping < 300:
+                color = discord.Colour.orange()
             else:
-                color = 0xff0000
+                color = discord.Colour.red()
             embed = discord.Embed(title=f"{lang()[language]['Pong']}!",
                                   description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
             await ctx.send(embed=embed)
@@ -185,7 +187,7 @@ class MainCog(commands.Cog):
     @bot.event
     async def on_command_error(ctx, error):
         try:
-            language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
+            language = await get_guild_language(ctx)
         except TypeError:
             language = 'en'
         if isinstance(error, commands.CommandNotFound):
