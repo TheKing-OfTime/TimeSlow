@@ -28,21 +28,8 @@ class WorkWithGuildsDB(commands.Cog):
                 log_channel = disagree_emoji()
             embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Guild']}",
                                   colour=discord.Colour.blurple())
-            embed.add_field(name="Параметр", value=f'''
-Id
-Режим
-Дата первого включения
-Роль мута
-Канал логирования
-Язык''', inline=True)
-
-            embed.add_field(name="Значение", value=f'''
-{guild_data[0]} 
-{guild_data[2]} 
-{guild_data[3]} 
-{mute_role} 
-{log_channel} 
-{language} ''', inline=True)
+            embed.add_field(name="Параметр", value=f'Id \nРежим \nДата первого включения \nРоль мута \nКанал логирования \nЯзык', inline=True)
+            embed.add_field(name="Значение", value=f'{guild_data[0]} \n{guild_data[2]} \n{guild_data[3]} \n{mute_role} \n{log_channel} \n{language}', inline=True)
             embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
             embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon_url)
             await ctx.send(embed=embed)
