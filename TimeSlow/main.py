@@ -60,7 +60,7 @@ Id
                 language = "ru"
             else:
                 language = "en"
-            guildvalues = (ctx.guild.id, str(ctx.guild.name), 2, datetime.now(), bool(1), 0, 0, language)
+            guildvalues = (ctx.guild.id, str(ctx.guild.name), 1, datetime.now(), bool(1), 0, 0, language)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
@@ -144,24 +144,93 @@ Id
                 await ctx.message.add_reaction(disagree_emoji())
 
 
-class MainCog(commands.Cog):
+class WorkWithMemberDB(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.channel == discord.TextChannel:
+        if str(message.channel.type) == 'text':
             if await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {message.guild.id}"):
                 cur = data.cursor()
                 cur.execute(f"SELECT * FROM guilds WHERE id={message.guild.id}")
                 guild_data = cur.fetchone()
-                if guild_data[2] == 1:
-                    pass
-                elif guild_data[2] == 2:
-                    pass
-                elif guild_data[3] == 3:
-                    pass
+                if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {message.author.id} AND guild_id = {message.guild.id}"):
+                    cur.execute(f"SELECT * FROM mutemembers WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
+                    member_data = cur.fetchone()
+                    if guild_data[2] == 1:
+                        if int(member_data[2]) == 1:
+                            await message.delete()
+                        else:
+                            await db_dump_req(f"UPDATE mutemembers SET in_interval = {bool(1)} WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
+                            await asyncio.sleep(member_data[4])
+                            await db_dump_req(f"UPDATE mutemembers SET in_interval = {bool(0)} WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
+
+                    elif guild_data[2] == 2:
+                        if int(member_data[2]) == 1:
+                            await message.delete()
+                            try:
+                                await message.author.send("Вы отправляете сообщения слишком быстро \nУдаленно сообщение:")
+                                await message.author.send(message.content)
+                            except:
+                                pass
+                        else:
+                            await db_dump_req(f"UPDATE mutemembers SET in_interval = {bool(1)} WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
+                            await asyncio.sleep(member_data[4])
+                            await db_dump_req(f"UPDATE mutemembers SET in_interval = {bool(0)} WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
+
+                    elif guild_data[3] == 3:
+                        pass
+
+    @commands.command(aliases=['Slowdown', 'sd'])
+    @commands.check(is_developer)
+    async def slowdown(self, ctx, member: discord.Member, interval, unmute_in):
+        if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 0:
+            membervalues = (member.id, str(member), False, datetime.now(), int(interval), int(unmute_in), ctx.guild.id)
+            cur = data.cursor()
+            cur.execute("INSERT INTO mutemembers VALUES(?, ?, ?, ?, ?, ?, ?);", membervalues)
+            data.commit()
+            await ctx.message.add_reaction(agree_emoji())
+            embed = discord.Embed(title=f"Медленный режим у {member} включён", color=discord.Colour.blurple(), description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут')
+            await ctx.send(embed=embed)
+        else:
+            await ctx.message.add_reaction(disagree_emoji())
+            embed = discord.Embed(title=f"{disagree_emoji()} Ошибка",
+                                  description="Невозможно включить медленный режим пользователю дважды.",
+                                  color=discord.Colour.red())
+            await ctx.send(embed=embed)
+            await asyncio.sleep(unmute_in*60)
+            if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
+                cur = data.cursor()
+                cur.execute(f"DELETE FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
+                data.commit()
+                await ctx.message.add_reaction(agree_emoji())
+                embed = discord.Embed(title=f"Медленный режим у {member} отключён", color=discord.Colour.blurple())
+                await ctx.send(embed=embed)
+
+    @commands.command(aliases=['Unslowdown', 'usd'])
+    @commands.check(is_developer)
+    async def unslowdown(self, ctx, member: discord.Member):
+        if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
+            cur = data.cursor()
+            cur.execute(f"DELETE FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
+            data.commit()
+            await ctx.message.add_reaction(agree_emoji())
+            embed = discord.Embed(title=f"Медленный режим у {member} отключён", color=discord.Colour.blurple())
+            await ctx.send(embed=embed)
+        else:
+            await ctx.message.add_reaction(disagree_emoji())
+            embed = discord.Embed(title=f"{disagree_emoji()} Ошибка",
+                                  description="Невозможно отключить медленный режим у пользователя, ведь он уже отключён.",
+                                  color=discord.Colour.red())
+            await ctx.send(embed=embed)
+
+
+class MainCog(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
 
     @commands.command()
     async def ping(self, ctx):
@@ -181,7 +250,7 @@ class MainCog(commands.Cog):
     @bot.event
     async def on_ready():
         await bot.change_presence(
-            activity=discord.Activity(type=discord.ActivityType.listening, name=f"{config()['prefix']}help"))
+            activity=discord.Activity(type=discord.ActivityType.listening, name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print('TimeSlow инициализирован')
 
     @bot.event
@@ -207,6 +276,7 @@ class MainCog(commands.Cog):
             await ctx.message.add_reaction(disagree_emoji())
 
 
+bot.add_cog(WorkWithMemberDB(bot))
 bot.add_cog(MainCog(bot))
 bot.add_cog(WorkWithGuildsDB(bot))
 bot.run(config()["token"])
