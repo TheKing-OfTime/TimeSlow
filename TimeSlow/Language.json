@@ -11,7 +11,8 @@
     "NotFound": "not found",
     "InfoAbout": "Info about",
     "Guild": "guild",
-    "Member": "member"
+    "Member": "member",
+    "Value": "Value"
   },
   "ru": {
     "UnKnCommand": "Неизвестная команда",
@@ -25,6 +26,7 @@
     "NotFound": "не найден",
     "InfoAbout": "Информация о",
     "Guild": "гильдии",
-    "Member": "пользователе"
+    "Member": "пользователе",
+    "Value": "Значение"
   }
 }

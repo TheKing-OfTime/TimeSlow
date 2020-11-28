@@ -66,7 +66,7 @@ async def get_guild_language(ctx):
         language = await db_load_req(f"SELECT language FROM guilds WHERE id = {ctx.guild.id};")
         return language
     else:
-        return "ru"
+        return "en"
 
 
 def convert_to_member(value):
@@ -106,3 +106,11 @@ def disagree_emoji():
 
 async def is_developer(ctx):
     return ctx.author.id == config()["devID"]
+
+
+async def is_Moderator(ctx):
+    return ctx.author.id == config()["devID"] or ctx.author.guild_permissions.manage_guild
+
+
+async def is_Admin(ctx):
+    return ctx.author.id == config()["devID"] or ctx.author.guild_permissions.administrator
