@@ -190,14 +190,10 @@ class WorkWithMemberDB(commands.Cog):
     @commands.check(is_Moderator)
     async def slowdown(self, ctx, member: discord.Member, interval, unmute_in):
         if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 0:
-            print(1)
             membervalues = (member.id, str(member), False, datetime.now(), int(interval), int(unmute_in), ctx.guild.id, str(ctx.guild.id) + str(member.id))
             cur = data.cursor()
-            print(2)
             cur.execute("INSERT INTO mutemembers VALUES(?, ?, ?, ?, ?, ?, ?, ?);", membervalues)
-            print(3)
             data.commit()
-            print(4)
             await ctx.message.add_reaction(agree_emoji())
             embed = discord.Embed(title=f"Медленный режим у {member} включён", color=discord.Colour.blurple(),
                                   description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут')
