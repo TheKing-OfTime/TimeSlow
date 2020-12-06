@@ -5,6 +5,7 @@ from datetime import datetime
 from discord.ext import commands
 
 
+
 class WorkWithGuildsDB(commands.Cog):
 
     def __init__(self, bot):
@@ -267,6 +268,12 @@ class MainCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def updatestatus(self):
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        print("Status updated")
+        await asyncio.sleep(900)
+
+
     @commands.command()
     async def ping(self, ctx):
         if await db_valid_cheker(ctx):
@@ -290,9 +297,7 @@ class MainCog(commands.Cog):
 
     @bot.event
     async def on_ready():
-        await bot.change_presence(
-            activity=discord.Activity(type=discord.ActivityType.listening,
-                                      name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print('TimeSlow инициализирован')
 
     @bot.event
@@ -317,6 +322,9 @@ class MainCog(commands.Cog):
             await ctx.send(str(lang()[language]["AccessDenied"]))
             await ctx.message.add_reaction(disagree_emoji())
 
+    ioloop = asyncio.get_event_loop()
+    ioloop.create_task(updatestatus())
+    ioloop.run_forever()
 
 bot.add_cog(WorkWithMemberDB(bot))
 bot.add_cog(MainCog(bot))
