@@ -12,7 +12,12 @@
     "InfoAbout": "Info about",
     "Guild": "guild",
     "Member": "member",
-    "Value": "Value"
+    "Value": "Value",
+    "Mod": "Mod",
+    "DOLsetup": "Date of last `setup`",
+    "MRole": "Mute role",
+    "LChann": "Log channel",
+    "Lang": "Language"
   },
   "ru": {
     "UnKnCommand": "Неизвестная команда",
@@ -27,6 +32,11 @@
     "InfoAbout": "Информация о",
     "Guild": "гильдии",
     "Member": "пользователе",
-    "Value": "Значение"
+    "Value": "Значение",
+    "Mod": "Режим",
+    "DOLsetup": "Дата последнего `setup`",
+    "MRole": "Роль мута",
+    "LChann": "Канал логирования",
+    "Lang": "Язык"
   }
 }

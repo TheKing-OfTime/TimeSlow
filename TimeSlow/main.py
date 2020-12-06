@@ -28,10 +28,10 @@ class WorkWithGuildsDB(commands.Cog):
                 log_channel = disagree_emoji()
             embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Guild']}",
                                   colour=discord.Colour.blurple())
-            embed.add_field(name="Параметр",
-                            value=f'Id \nРежим \nДата первого включения \nРоль мута \nКанал логирования \nЯзык',
+            embed.add_field(name=lang()[language]['Parameter'],
+                            value=f'ID \n{lang()[language]["Mod"]} \n{lang()[language]["DOLsetup"]} \n{lang()[language]["MRole"]} \n{lang()[language]["LChann"]} \n{lang()[language]["Lang"]}',
                             inline=True)
-            embed.add_field(name="Значение",
+            embed.add_field(name=lang()[language]['Value'],
                             value=f'{guild_data[0]} \n{guild_data[2]} \n{guild_data[3]} \n{mute_role} \n{log_channel} \n{language}',
                             inline=True)
             embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
@@ -39,7 +39,7 @@ class WorkWithGuildsDB(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command()
-    @commands.check(is_developer)
+    @commands.check(is_Admin)
     async def setup(self, ctx):
         embed = discord.Embed(title="Инициализация", description="Пожалуйста подождите...",
                               colour=discord.Colour.blurple())
@@ -140,6 +140,17 @@ class WorkWithGuildsDB(commands.Cog):
                 await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['NotFound']}")
                 await ctx.message.add_reaction(disagree_emoji())
 
+    @commands.command()
+    @commands.check(is_developer)
+    async def sql_request(self, ctx, *, request):
+        cur = data.cursor()
+        try:
+            cur.execute(str(request))
+            await ctx.send(cur.fetchone() or 0)
+            data.commit()
+        except Exception as error:
+            await ctx.send(error)
+
 
 class WorkWithMemberDB(commands.Cog):
 
@@ -188,12 +199,14 @@ class WorkWithMemberDB(commands.Cog):
 
     @commands.command(aliases=['Slowdown', 'sd'])
     @commands.check(is_Moderator)
-    async def slowdown(self, ctx, member: discord.Member, interval, unmute_in):
+    async def slowdown(self, ctx, member: discord.Member, interval, unmute_in='0'):
         if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 0:
             membervalues = (member.id, str(member), False, datetime.now(), int(interval), int(unmute_in), ctx.guild.id, str(ctx.guild.id) + str(member.id))
             cur = data.cursor()
             cur.execute("INSERT INTO mutemembers VALUES(?, ?, ?, ?, ?, ?, ?, ?);", membervalues)
             data.commit()
+            if unmute_in == '0':
+                unmute_in = 'Permanent'
             await ctx.message.add_reaction(agree_emoji())
             embed = discord.Embed(title=f"Медленный режим у {member} включён", color=discord.Colour.blurple(),
                                   description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут')
@@ -205,7 +218,7 @@ class WorkWithMemberDB(commands.Cog):
                                   color=discord.Colour.red())
             await ctx.send(embed=embed)
         await asyncio.sleep(int(unmute_in) * 60)
-        if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
+        if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1 and unmute_in != 'Permanent':
             cur = data.cursor()
             cur.execute(f"DELETE FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
             data.commit()
@@ -268,6 +281,12 @@ class MainCog(commands.Cog):
             embed = discord.Embed(title=f"{lang()[language]['Pong']}!",
                                   description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
             await ctx.send(embed=embed)
+
+    @commands.command()
+    async def invite(self, ctx):
+        embed = discord.Embed(title="Пригласить бота", url=config()["invite"], color=0x7289da)
+        embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        await ctx.send(embed=embed)
 
     @bot.event
     async def on_ready():
