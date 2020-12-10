@@ -114,3 +114,12 @@ async def is_Moderator(ctx):
 
 async def is_Admin(ctx):
     return ctx.author.id == config()["devID"] or ctx.author.guild_permissions.administrator
+
+
+async def help_list(ctx):
+    embed = discord.Embed(title=f'{lang()[await get_guild_language(ctx)]["Help"]}', color=discord.Colour.blurple(), description="Структура команд `имя[Псевдонимы]{обязательный аргумент}(не обязатнльный аргумент)`")
+    embed.add_field(name=f"Доступные всем:", value="`ping`   Вывод задержки \n`guildinfo[serverinfo, sinfo, ginfo]`   Информация о сервере \n`memberinfo[minfo]{member}`   Информация о пользователе \n`invite`   Пригласить бота к себе на сервер", inline=False)
+    embed.add_field(name=f"Доступные модераторам:", value="`slowdown[sd]{member}{interval}(minutes)`   Включить медленный режим у пользователя \n`unslowdown[usd]{member}`   Выключить медленный режим у пользователя", inline=False)
+    embed.add_field(name=f"Доступные администраторам:", value="`settings[s]{option}{value}`   Изменить параметры работы бота \n`setup`   Команд для первой инициализации, если она не смогла пройти автоматически", inline=False)
+    embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+    await ctx.send(embed=embed)

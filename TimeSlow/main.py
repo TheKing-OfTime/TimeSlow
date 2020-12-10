@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 from discord.ext import commands
 
+bot.remove_command("help")
 
 
 class WorkWithGuildsDB(commands.Cog):
@@ -11,7 +12,7 @@ class WorkWithGuildsDB(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['Guildinfo', 'ginfo'])
+    @commands.command(aliases=['Guildinfo', 'ginfo', 'Serverinfo', 'sinfo', 'serverinfo'])
     async def guildinfo(self, ctx):
         if await db_valid_cheker(ctx):
             language = await get_guild_language(ctx)
@@ -263,16 +264,20 @@ class WorkWithMemberDB(commands.Cog):
                 await ctx.message.add_reaction(disagree_emoji())
 
 
+async def updatestatus():
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+    print("Status updated")
+    await asyncio.sleep(5)
+
+
 class MainCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
-    async def updatestatus(self):
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
-        print("Status updated")
-        await asyncio.sleep(900)
-
+    @commands.command(aliases=["Help", "h"])
+    async def help(self, ctx, arg1=None):
+        await help_list(ctx)
 
     @commands.command()
     async def ping(self, ctx):
@@ -297,8 +302,10 @@ class MainCog(commands.Cog):
 
     @bot.event
     async def on_ready():
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print('TimeSlow инициализирован')
+        # ioloop = asyncio.get_event_loop()
+        # await ioloop.create_task(updatestatus())
+        # ioloop.run_forever()
 
     @bot.event
     async def on_command_error(ctx, error):
@@ -322,9 +329,27 @@ class MainCog(commands.Cog):
             await ctx.send(str(lang()[language]["AccessDenied"]))
             await ctx.message.add_reaction(disagree_emoji())
 
-    ioloop = asyncio.get_event_loop()
-    ioloop.create_task(updatestatus())
-    ioloop.run_forever()
+    @bot.event
+    async def on_guild_join(guild):
+        count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {guild.id}")
+        if count == 0:
+            if str(guild.region) == "russia":
+                language = "ru"
+            else:
+                language = "en"
+            guildvalues = (guild.id, str(guild.name), 1, datetime.now(), bool(1), 0, 0, language)
+            cur = data.cursor()
+            cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
+            data.commit()
+        elif count == 1:
+            pass
+
+        else:
+            print('DataBaseError', guild.name, guild.id, datetime.date())
+            await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.date()}')
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        print("Status updated")
+
 
 bot.add_cog(WorkWithMemberDB(bot))
 bot.add_cog(MainCog(bot))

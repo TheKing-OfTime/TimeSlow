@@ -17,7 +17,8 @@
     "DOLsetup": "Date of last `setup`",
     "MRole": "Mute role",
     "LChann": "Log channel",
-    "Lang": "Language"
+    "Lang": "Language",
+    "Help": "Help"
   },
   "ru": {
     "UnKnCommand": "Неизвестная команда",
@@ -37,6 +38,7 @@
     "DOLsetup": "Дата последнего `setup`",
     "MRole": "Роль мута",
     "LChann": "Канал логирования",
-    "Lang": "Язык"
+    "Lang": "Язык",
+    "Help": "Помощь"
   }
 }
