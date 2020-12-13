@@ -202,8 +202,10 @@ class WorkWithMemberDB(commands.Cog):
     @commands.command(aliases=['Slowdown', 'sd'])
     @commands.check(is_Moderator)
     async def slowdown(self, ctx, member: discord.Member, interval, unmute_in='0'):
-        if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 0:
-            membervalues = (member.id, str(member), False, datetime.now(), int(interval), int(unmute_in), ctx.guild.id, str(ctx.guild.id) + str(member.id))
+        if await db_load_req(
+                f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 0:
+            membervalues = (member.id, str(member), False, datetime.now(), int(interval), int(unmute_in), ctx.guild.id,
+                            str(ctx.guild.id) + str(member.id))
             cur = data.cursor()
             cur.execute("INSERT INTO mutemembers VALUES(?, ?, ?, ?, ?, ?, ?, ?);", membervalues)
             data.commit()
@@ -220,7 +222,8 @@ class WorkWithMemberDB(commands.Cog):
                                   color=discord.Colour.red())
             await ctx.send(embed=embed)
         await asyncio.sleep(int(unmute_in) * 60)
-        if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1 and unmute_in != 'Permanent':
+        if await db_load_req(
+                f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1 and unmute_in != 'Permanent':
             cur = data.cursor()
             cur.execute(f"DELETE FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
             data.commit()
@@ -231,7 +234,8 @@ class WorkWithMemberDB(commands.Cog):
     @commands.command(aliases=['Unslowdown', 'usd'])
     @commands.check(is_Moderator)
     async def unslowdown(self, ctx, member: discord.Member):
-        if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
+        if await db_load_req(
+                f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
             cur = data.cursor()
             cur.execute(f"DELETE FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
             data.commit()
@@ -248,14 +252,18 @@ class WorkWithMemberDB(commands.Cog):
     @commands.command(aliases=["Memberinfo", "minfo"])
     async def memberinfo(self, ctx, *, member: discord.Member):
         if await db_valid_cheker(ctx):
-            if await db_load_req(f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
+            if await db_load_req(
+                    f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
                 language = str(await get_guild_language(ctx))
                 cur = data.cursor()
                 cur.execute(f"SELECT * FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
                 member_data = cur.fetchone()
-                embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Member']}", color=discord.Colour.blurple())
-                embed.add_field(name=f"{lang()[language]['Parameter']}", value="Имя пользователя: \nID: \nИнтервал: \nОтключение через:", inline=True)
-                embed.add_field(name=f"{lang()[language]['Value']}", value=f'{member_data[1]}\n{member_data[0]}\n{member_data[4]}\n{member_data[5]}')
+                embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Member']}",
+                                      color=discord.Colour.blurple())
+                embed.add_field(name=f"{lang()[language]['Parameter']}",
+                                value="Имя пользователя: \nID: \nИнтервал: \nОтключение через:", inline=True)
+                embed.add_field(name=f"{lang()[language]['Value']}",
+                                value=f'{member_data[1]}\n{member_data[0]}\n{member_data[4]}\n{member_data[5]}')
                 embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
                 embed.set_author(name=str(member), icon_url=member.avatar_url)
                 await ctx.send(embed=embed)
@@ -265,7 +273,8 @@ class WorkWithMemberDB(commands.Cog):
 
 
 async def updatestatus():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
+                                                        name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
     print("Status updated")
     await asyncio.sleep(5)
 
@@ -277,7 +286,8 @@ class MainCog(commands.Cog):
 
     @commands.command(aliases=["Help", "h"])
     async def help(self, ctx, arg1=None):
-        await help_list(ctx)
+        if arg1 == None:
+            await help_list(ctx)
 
     @commands.command()
     async def ping(self, ctx):
@@ -302,6 +312,7 @@ class MainCog(commands.Cog):
 
     @bot.event
     async def on_ready():
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print('TimeSlow инициализирован')
         # ioloop = asyncio.get_event_loop()
         # await ioloop.create_task(updatestatus())
