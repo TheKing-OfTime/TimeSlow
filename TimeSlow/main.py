@@ -148,7 +148,7 @@ class WorkWithGuildsDB(commands.Cog):
         cur = data.cursor()
         try:
             cur.execute(str(request))
-            await ctx.send(cur.fetchone() or 0)
+            await ctx.send(cur.fetchall() or 0)
             data.commit()
         except Exception as error:
             await ctx.send(error)
@@ -211,15 +211,18 @@ class WorkWithMemberDB(commands.Cog):
             data.commit()
             if unmute_in == '0':
                 unmute_in = 'Permanent'
-            await ctx.message.add_reaction(agree_emoji())
-            embed = discord.Embed(title=f"Медленный режим у {member} включён", color=discord.Colour.blurple(),
-                                  description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут')
-            await ctx.send(embed=embed)
+            Bot = ctx.guild.get_member(750415350348382249)
+            if Bot.guild_permissions.manage_messages and Bot.guild_permissions.manage_roles:
+                await ctx.message.add_reaction(agree_emoji())
+                embed = discord.Embed(title=f"Медленный режим у {member} включён", color=discord.Colour.blurple(), description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут')
+                await ctx.send(embed=embed)
+            else:
+                await ctx.message.add_reaction(warning_emoji())
+                embed = discord.Embed(title=f"Медленный режим у {member} включён, но некотороые необходимые права отсутствуют", color=discord.Colour.blurple(), description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут \nОтсутствуент право "Управлять сообщениями". Медленный режим не будет работать корректно')
+                await ctx.send(embed=embed)
         else:
             await ctx.message.add_reaction(disagree_emoji())
-            embed = discord.Embed(title=f"{disagree_emoji()} Ошибка",
-                                  description="Невозможно включить медленный режим пользователю дважды.",
-                                  color=discord.Colour.red())
+            embed = discord.Embed(title=f"{disagree_emoji()} Ошибка", description="Невозможно включить медленный режим пользователю дважды.", color=discord.Colour.red())
             await ctx.send(embed=embed)
         await asyncio.sleep(int(unmute_in) * 60)
         if await db_load_req(
@@ -358,6 +361,11 @@ class MainCog(commands.Cog):
         else:
             print('DataBaseError', guild.name, guild.id, datetime.date())
             await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.date()}')
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        print("Status updated")
+
+    @bot.event
+    async def on_guild_remove(guild):
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print("Status updated")
 
