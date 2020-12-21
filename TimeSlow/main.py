@@ -1,8 +1,10 @@
 from Lib import *
 import discord
+import aiohttp
 import asyncio
 from datetime import datetime
 from discord.ext import commands
+from discord.ext import tasks
 
 bot.remove_command("help")
 
@@ -287,6 +289,8 @@ class MainCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    loop = tasks.loop()
+
     @commands.command(aliases=["Help", "h"])
     async def help(self, ctx, arg1=None):
         if arg1 == None:
@@ -368,6 +372,14 @@ class MainCog(commands.Cog):
     async def on_guild_remove(guild):
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print("Status updated")
+
+    @loop(hours=2)
+    async def monitorings(self):
+        async with aiohttp.ClientSession() as session:
+            res = await session.post(f"https://api.server-discord.com/v2/bots/{self.bot.uset.id}/stats",
+                                     headers={"Authorization": f"SDC {config()['SDCtoken']}"},
+                                     data={"shards": self.bot.shard_count or 1, "servers": len(self.bot.guilds)})
+            print("SDC:", await res.json())
 
 
 bot.add_cog(WorkWithMemberDB(bot))
