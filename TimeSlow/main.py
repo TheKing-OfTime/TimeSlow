@@ -355,7 +355,7 @@ class MainCog(commands.Cog):
                 language = "ru"
             else:
                 language = "en"
-            guildvalues = (guild.id, str(guild.name), 1, datetime.now(), bool(1), 0, 0, language)
+            guildvalues = (guild.id, str(guild.name), 2, datetime.now(), bool(1), 0, 0, language)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
