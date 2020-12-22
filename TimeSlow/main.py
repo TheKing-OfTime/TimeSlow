@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 from Lib import *
 import discord
 import aiohttp
@@ -216,15 +217,21 @@ class WorkWithMemberDB(commands.Cog):
             Bot = ctx.guild.get_member(750415350348382249)
             if Bot.guild_permissions.manage_messages and Bot.guild_permissions.manage_roles:
                 await ctx.message.add_reaction(agree_emoji())
-                embed = discord.Embed(title=f"Медленный режим у {member} включён", color=discord.Colour.blurple(), description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут')
+                embed = discord.Embed(title=f"Медленный режим у {member} включён", color=discord.Colour.blurple(),
+                                      description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут')
                 await ctx.send(embed=embed)
             else:
                 await ctx.message.add_reaction(warning_emoji())
-                embed = discord.Embed(title=f"Медленный режим у {member} включён, но некотороые необходимые права отсутствуют", color=discord.Colour.blurple(), description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут \nОтсутствуент право "Управлять сообщениями". Медленный режим не будет работать корректно')
+                embed = discord.Embed(
+                    title=f"Медленный режим у {member} включён, но некотороые необходимые права отсутствуют",
+                    color=discord.Colour.blurple(),
+                    description=f'Интервал: `{interval}` секунд \nМедленный режим отключется через: `{unmute_in}` минут \nОтсутствуент право "Управлять сообщениями". Медленный режим не будет работать корректно')
                 await ctx.send(embed=embed)
         else:
             await ctx.message.add_reaction(disagree_emoji())
-            embed = discord.Embed(title=f"{disagree_emoji()} Ошибка", description="Невозможно включить медленный режим пользователю дважды.", color=discord.Colour.red())
+            embed = discord.Embed(title=f"{disagree_emoji()} Ошибка",
+                                  description="Невозможно включить медленный режим пользователю дважды.",
+                                  color=discord.Colour.red())
             await ctx.send(embed=embed)
         await asyncio.sleep(int(unmute_in) * 60)
         if await db_load_req(
@@ -277,19 +284,12 @@ class WorkWithMemberDB(commands.Cog):
                 await ctx.message.add_reaction(disagree_emoji())
 
 
-async def updatestatus():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                        name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
-    print("Status updated")
-    await asyncio.sleep(5)
-
-
 class MainCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
-    loop = tasks.loop()
+    loop = tasks.loop(hours=1)
 
     @commands.command(aliases=["Help", "h"])
     async def help(self, ctx, arg1=None):
@@ -321,9 +321,6 @@ class MainCog(commands.Cog):
     async def on_ready():
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print('TimeSlow инициализирован')
-        # ioloop = asyncio.get_event_loop()
-        # await ioloop.create_task(updatestatus())
-        # ioloop.run_forever()
 
     @bot.event
     async def on_command_error(ctx, error):
@@ -359,27 +356,32 @@ class MainCog(commands.Cog):
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
+            print(f'Guild logged {guild.id} {guild.name}')
         elif count == 1:
             pass
 
         else:
             print('DataBaseError', guild.name, guild.id, datetime.date())
             await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.date()}')
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
-        print("Status updated")
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
+                                                            name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
 
     @bot.event
     async def on_guild_remove(guild):
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
-        print("Status updated")
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
+                                                            name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        print(f'Guild remove {guild.id} {guild.name}')
 
-    @loop(hours=2)
+    @loop
     async def monitorings(self):
-        async with aiohttp.ClientSession() as session:
-            res = await session.post(f"https://api.server-discord.com/v2/bots/{self.bot.uset.id}/stats",
-                                     headers={"Authorization": f"SDC {config()['SDCtoken']}"},
-                                     data={"shards": self.bot.shard_count or 1, "servers": len(self.bot.guilds)})
-            print("SDC:", await res.json())
+        try:
+            async with aiohttp.ClientSession() as session:
+                res = await session.post(f"https://api.server-discord.com/v2/bots/{750415350348382249}/stats",
+                                         headers={"Authorization": f"SDC {config()['SDCtoken']}"},
+                                         data={"shards": bot.shard_count or 1, "servers": len(bot.guilds)})
+                print("SDC Status updated:", await res.json())
+        except Exception as error:
+            print(error)
 
 
 bot.add_cog(WorkWithMemberDB(bot))
