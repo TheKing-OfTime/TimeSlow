@@ -7,6 +7,7 @@ from datetime import datetime
 from discord.ext import commands
 from discord.ext import tasks
 
+
 bot.remove_command("help")
 
 
@@ -284,12 +285,13 @@ class WorkWithMemberDB(commands.Cog):
                 await ctx.message.add_reaction(disagree_emoji())
 
 
+
+
+
 class MainCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-
-    loop = tasks.loop(hours=1)
 
     @commands.command(aliases=["Help", "h"])
     async def help(self, ctx, arg1=None):
@@ -319,10 +321,19 @@ class MainCog(commands.Cog):
 
     @bot.event
     async def on_ready():
+        print("Инициализация")
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        try:
+            async with aiohttp.ClientSession() as session:
+                res = await session.post(f"https://api.server-discord.com/v2/bots/{750415350348382249}/stats",
+                                         headers={"Authorization": f"SDC {config()['SDCtoken']}"},
+                                         data={"shards": bot.shard_count or 1, "servers": len(bot.guilds)})
+                print("SDC Status updated:", await res.json())
+        except Exception as error:
+            print(error)
         print('TimeSlow инициализирован')
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_command_error(ctx, error):
         try:
             language = await get_guild_language(ctx)
@@ -345,7 +356,7 @@ class MainCog(commands.Cog):
             await ctx.send(str(lang()[language]["AccessDenied"]))
             await ctx.message.add_reaction(disagree_emoji())
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_guild_join(guild):
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {guild.id}")
         if count == 0:
@@ -367,13 +378,13 @@ class MainCog(commands.Cog):
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
                                                             name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_guild_remove(guild):
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
                                                             name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print(f'Guild remove {guild.id} {guild.name}')
 
-    @loop
+    @tasks.loop(hours=1 )
     async def monitorings(self):
         try:
             async with aiohttp.ClientSession() as session:
