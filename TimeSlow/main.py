@@ -329,8 +329,9 @@ class MainCog(commands.Cog):
         except TypeError:
             language = 'en'
         if isinstance(error, commands.CommandNotFound):
-            await ctx.send(str(lang()[language]["UnKnCommand"]))
-            await ctx.message.add_reaction(disagree_emoji())
+            pass
+            #await ctx.send(str(lang()[language]["UnKnCommand"]))
+            #await ctx.message.add_reaction(disagree_emoji())
 
         if isinstance(error, commands.BadArgument):
             await ctx.send(str(lang()[language]["BArg"]))
