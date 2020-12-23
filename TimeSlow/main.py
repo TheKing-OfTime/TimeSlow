@@ -5,7 +5,7 @@ import aiohttp
 import asyncio
 from datetime import datetime
 from discord.ext import commands
-from discord.ext import tasks
+from discord.ext.tasks import loop
 
 
 bot.remove_command("help")
@@ -292,6 +292,10 @@ class MainCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.monitorings.start()
+
+    print("Инициализация")
+
 
     @commands.command(aliases=["Help", "h"])
     async def help(self, ctx, arg1=None):
@@ -321,7 +325,7 @@ class MainCog(commands.Cog):
 
     @bot.event
     async def on_ready():
-        print("Инициализация")
+
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         try:
             async with aiohttp.ClientSession() as session:
@@ -384,7 +388,7 @@ class MainCog(commands.Cog):
                                                             name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print(f'Guild remove {guild.id} {guild.name}')
 
-    @tasks.loop(hours=1 )
+    @loop(hours=1)
     async def monitorings(self):
         try:
             async with aiohttp.ClientSession() as session:
