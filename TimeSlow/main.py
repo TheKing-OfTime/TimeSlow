@@ -325,20 +325,11 @@ class MainCog(commands.Cog):
 
     @bot.event
     async def on_ready():
-
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
-        try:
-            async with aiohttp.ClientSession() as session:
-                res = await session.post(f"https://api.server-discord.com/v2/bots/{750415350348382249}/stats",
-                                         headers={"Authorization": f"SDC {config()['SDCtoken']}"},
-                                         data={"shards": bot.shard_count or 1, "servers": len(bot.guilds)})
-                print("SDC Status updated:", await res.json())
-        except Exception as error:
-            print(error)
         print('TimeSlow инициализирован')
 
     @commands.Cog.listener()
-    async def on_command_error(ctx, error):
+    async def on_command_error(self, ctx, error):
         try:
             language = await get_guild_language(ctx)
         except TypeError:
@@ -361,7 +352,7 @@ class MainCog(commands.Cog):
             await ctx.message.add_reaction(disagree_emoji())
 
     @commands.Cog.listener()
-    async def on_guild_join(guild):
+    async def on_guild_join(self, guild):
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {guild.id}")
         if count == 0:
             if str(guild.region) == "russia":
@@ -383,7 +374,7 @@ class MainCog(commands.Cog):
                                                             name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
 
     @commands.Cog.listener()
-    async def on_guild_remove(guild):
+    async def on_guild_remove(self, guild):
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
                                                             name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         print(f'Guild remove {guild.id} {guild.name}')
