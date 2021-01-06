@@ -122,6 +122,14 @@ async def help_list(ctx):
     if await is_Moderator(ctx):
         embed.add_field(name=f"Доступные модераторам:", value="`slowdown[sd]{member}{interval}(minutes)`   Включить медленный режим у пользователя \n`unslowdown[usd]{member}`   Выключить медленный режим у пользователя", inline=False)
     if await is_Admin(ctx):
-        embed.add_field(name=f"Доступные администраторам:", value="`settings[s]{option}{value}`   Изменить параметры работы бота \n`setup`   Команд для первой инициализации, если она не смогла пройти автоматически", inline=False)
+        embed.add_field(name=f"Доступные администраторам:", value="`settings[s]{option}{value}`   Изменить параметры работы бота *больше информации ts!help settings* \n`setup`   Команд для первой инициализации, если она не смогла пройти автоматически", inline=False)
     embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+    await ctx.send(embed=embed)
+
+async def help_settings(ctx):
+    embed = discord.Embed(title=f'{lang()[await get_guild_language(ctx)]["Help"]}', color=discord.Colour.blurple(),description='settings[s]{option}{value}')
+    embed.add_field(name=f"Режим работы", value='`ts!settings mod {value}`\n`1`: При выходе за таймер сообщение удаляется\n`2`: Первый режим + отправка удалённого сообщения в ЛС\n`3`: Выдача мута пользовтелю на время таймера', inline=False)
+    embed.add_field(name=f"Канал логирования", value='`ts!settings log_channel {value}`\n`Канал`: Установка заданного канала как "Канала логирования"', inline=False)
+    embed.add_field(name=f"Роль мута", value='`ts!settings mute_role {value}`\n`Роль`: Установка заданной роли как "Роли мута"', inline=False)
+    embed.add_field(name=f"Язык", value='`ts!settings language {value}`\n`ru`: Установка русского языка\n`en`: Установка английского языка **НЕ рекомендуется**', inline=False)
     await ctx.send(embed=embed)

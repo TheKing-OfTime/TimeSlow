@@ -12,13 +12,15 @@
     "InfoAbout": "Info about",
     "Guild": "guild",
     "Member": "member",
+    "Channel": "channel",
     "Value": "Value",
     "Mod": "Mod",
     "DOLsetup": "Date of last `setup`",
     "MRole": "Mute role",
     "LChann": "Log channel",
     "Lang": "Language",
-    "Help": "Help"
+    "Help": "Help",
+    "Invite": "Invite bot"
   },
   "ru": {
     "UnKnCommand": "Неизвестная команда",
@@ -33,12 +35,14 @@
     "InfoAbout": "Информация о",
     "Guild": "гильдии",
     "Member": "пользователе",
+    "Channel": "Канале",
     "Value": "Значение",
     "Mod": "Режим",
     "DOLsetup": "Дата последнего `setup`",
     "MRole": "Роль мута",
     "LChann": "Канал логирования",
     "Lang": "Язык",
-    "Help": "Помощь"
+    "Help": "Помощь",
+    "Invite": "Пригласить бота"
   }
 }
