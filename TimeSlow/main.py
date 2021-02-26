@@ -3,6 +3,7 @@ from Lib import *
 import discord
 import aiohttp
 import asyncio
+import time
 from datetime import datetime
 from discord.ext import commands
 from discord.ext.tasks import loop
@@ -419,6 +420,7 @@ class MainCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.monitorings.start()
+        self.uptime = time.time()
 
     print("Инициализация")
 
@@ -431,18 +433,18 @@ class MainCog(commands.Cog):
 
     @commands.command()
     async def ping(self, ctx):
-        if await db_valid_cheker(ctx):
-            language = await get_guild_language(ctx)
-            ping = round(bot.latency * 1000, 2)
-            if ping < 180:
-                color = discord.Colour.green()
-            elif ping < 300:
-                color = discord.Colour.orange()
-            else:
-                color = discord.Colour.red()
-            embed = discord.Embed(title=f"{lang()[language]['Pong']}!",
-                                  description=f"{lang()[language]['Ping']}: `{ping}ms`", color=color)
-            await ctx.send(embed=embed)
+        uptime = time.gmtime(time.time() - self.uptime)
+        ping = round(bot.latency * 1000, 2)
+        if ping < 160:
+            color = discord.Colour.green()
+        elif ping < 200:
+            color = discord.Colour.orange()
+        else:
+            color = discord.Colour.red()
+        embed = discord.Embed(title=f"Понг!",
+                              description=f"Пинг: `{ping}ms`\nUptime {uptime.tm_hour + ((uptime.tm_mday - 1) * 24)}h {uptime.tm_min}m {uptime.tm_sec}s",
+                              color=color)
+        await ctx.send(embed=embed)
 
     @commands.command()
     async def invite(self, ctx):
@@ -501,12 +503,28 @@ class MainCog(commands.Cog):
             await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.date()}')
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
                                                             name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        log_chan = bot.get_channel(810967184397434921)
+        embed = discord.Embed(title=f"Присоединился к {guild.name} ({guild.id})", colour=discord.Colour.blurple())
+        embed.set_author(name="", icon_url=guild.icon_url)
+        await log_chan.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
                                                             name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+        log_chan = bot.get_channel(810967184397434921)
+        embed = discord.Embed(title=f"Вышел с  {guild.name} ({guild.id})", colour=discord.Colour.blurple())
+        embed.set_author(name="", icon_url=guild.icon_url)
+        await log_chan.send(embed=embed)
         print(f'Guild remove {guild.id} {guild.name}')
+
+    @commands.Cog.listener()
+    async def on_command(self, ctx):
+        log_chan = bot.get_channel(810967123752255518)
+        embed = discord.Embed(title=f"Использованна команда {ctx.command}", colour=discord.Colour.blurple())
+        embed.set_footer(text=f"{ctx.author} ({ctx.author.id})", icon_url=ctx.author.avatar_url)
+        embed.set_author(name=f"{ctx.guild.name} ({ctx.guild.id})", icon_url=ctx.guild.icon_url)
+        await log_chan.send(embed=embed)
 
     @loop(hours=1)
     async def monitorings(self):
@@ -516,6 +534,9 @@ class MainCog(commands.Cog):
                                          headers={"Authorization": f"SDC {config()['SDCtoken']}"},
                                          data={"shards": bot.shard_count or 1, "servers": len(bot.guilds)})
                 print("SDC Status updated:", await res.json())
+            await asyncio.sleep(1)
+            await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
+                                                                     name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
         except Exception as error:
             print(error)
 
