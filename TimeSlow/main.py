@@ -32,12 +32,12 @@ class WorkWithGuildsDB(commands.Cog):
                 log_channel = f'<#{guild_data[6]}>'
             else:
                 log_channel = disagree_emoji()
-            embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Guild']}",
+            embed = discord.Embed(title=f"{lang[language]['InfoAbout']} {lang[language]['Guild']}",
                                   colour=discord.Colour.blurple())
-            embed.add_field(name=lang()[language]['Parameter'],
-                            value=f'ID \n{lang()[language]["Mod"]} \n{lang()[language]["DOLsetup"]} \n{lang()[language]["MRole"]} \n{lang()[language]["LChann"]} \n{lang()[language]["Lang"]}',
+            embed.add_field(name=lang[language]['Parameter'],
+                            value=f'ID \n{lang[language]["Mod"]} \n{lang[language]["DOLsetup"]} \n{lang[language]["MRole"]} \n{lang[language]["LChann"]} \n{lang[language]["Lang"]}',
                             inline=True)
-            embed.add_field(name=lang()[language]['Value'],
+            embed.add_field(name=lang[language]['Value'],
                             value=f'{guild_data[0]} \n{guild_data[2]} \n{guild_data[3]} \n{mute_role} \n{log_channel} \n{language}',
                             inline=True)
             embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
@@ -96,54 +96,54 @@ class WorkWithGuildsDB(commands.Cog):
         language_possible_value = ['ru', 'en']
         if await db_valid_cheker(ctx):
             language = await get_guild_language(ctx)
-            if option == config()["db_guild_possible_options"][0]:
+            if option == config["db_guild_possible_options"][0]:
                 if mod_possible_value.count(int(value)) == 1:
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
                     await ctx.message.add_reaction(agree_emoji())
                 else:
                     await ctx.send(
-                        f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                        f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
                     await ctx.message.add_reaction(disagree_emoji())
 
-            elif option == config()["db_guild_possible_options"][1]:
+            elif option == config["db_guild_possible_options"][1]:
                 if value != '0':
                     role = convert_to_role(ctx.guild, value)
                     if role is not None:
                         role_id = role.id
                     else:
                         await ctx.send(
-                            f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                            f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
                         await ctx.message.add_reaction(disagree_emoji())
                 else:
                     role_id = 0
                 await db_dump_req(f"UPDATE guilds SET mute_role_id = {int(role_id)} WHERE id = {ctx.guild.id};")
                 await ctx.message.add_reaction(agree_emoji())
 
-            elif option == config()["db_guild_possible_options"][2]:
+            elif option == config["db_guild_possible_options"][2]:
                 if value != '0':
                     txtchannel = convert_to_channel(value)
                     if txtchannel is not None:
                         channelid = txtchannel.id
                     else:
                         await ctx.send(
-                            f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                            f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
                         await ctx.message.add_reaction(disagree_emoji())
                 else:
                     channelid = 0
                 await db_dump_req(f"UPDATE guilds SET log_channel_id = {int(channelid)} WHERE id = {ctx.guild.id};")
                 await ctx.message.add_reaction(agree_emoji())
 
-            elif option == config()["db_guild_possible_options"][3]:
+            elif option == config["db_guild_possible_options"][3]:
                 if language_possible_value.count(str(value)) == 1:
                     await db_dump_req(f'UPDATE guilds SET language = "{value}" WHERE id = {ctx.guild.id};')
                     await ctx.message.add_reaction(agree_emoji())
                 else:
                     await ctx.send(
-                        f"{lang()[language]['Parameter']} `{option}` {lang()[language]['CannotSet']} `{value}`")
+                        f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
                     await ctx.message.add_reaction(disagree_emoji())
 
             else:
-                await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang()[language]['NotFound']}")
+                await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang[language]['NotFound']}")
                 await ctx.message.add_reaction(disagree_emoji())
 
     @commands.command(aliases=['sql'])
@@ -263,19 +263,21 @@ class WorkWithMemberDB(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command(aliases=["Memberinfo", "minfo"])
-    async def memberinfo(self, ctx, *, member: discord.Member):
+    async def memberinfo(self, ctx, *, member: discord.Member = None):
         if await db_valid_cheker(ctx):
+            if member is None:
+                member = ctx.author
             if await db_load_req(
                     f"SELECT COUNT(*) as count FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}") == 1:
                 language = str(await get_guild_language(ctx))
                 cur = data.cursor()
                 cur.execute(f"SELECT * FROM mutemembers WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
                 member_data = cur.fetchone()
-                embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Member']}",
+                embed = discord.Embed(title=f"{lang[language]['InfoAbout']} {lang[language]['Member']}",
                                       color=discord.Colour.blurple())
-                embed.add_field(name=f"{lang()[language]['Parameter']}",
+                embed.add_field(name=f"{lang[language]['Parameter']}",
                                 value="Имя пользователя: \nID: \nИнтервал: \nОтключение через:", inline=True)
-                embed.add_field(name=f"{lang()[language]['Value']}",
+                embed.add_field(name=f"{lang[language]['Value']}",
                                 value=f'{member_data[1]}\n{member_data[0]}\n{member_data[4]}\n{member_data[5]}')
                 embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
                 embed.set_author(name=str(member), icon_url=member.avatar_url)
@@ -401,11 +403,11 @@ class MuteChannels(commands.Cog):
                 cur = data.cursor()
                 cur.execute(f"SELECT * FROM mutechannel WHERE id = {member.id} AND guild_id = {ctx.guild.id}")
                 member_data = cur.fetchone()
-                embed = discord.Embed(title=f"{lang()[language]['InfoAbout']} {lang()[language]['Channel']}",
+                embed = discord.Embed(title=f"{lang[language]['InfoAbout']} {lang()[language]['Channel']}",
                                       color=discord.Colour.blurple())
-                embed.add_field(name=f"{lang()[language]['Parameter']}",
+                embed.add_field(name=f"{lang[language]['Parameter']}",
                                 value="Имя канала: \nID: \nИнтервал: \nОтключение через:", inline=True)
-                embed.add_field(name=f"{lang()[language]['Value']}",
+                embed.add_field(name=f"{lang[language]['Value']}",
                                 value=f'{member_data[1]}\n{member_data[0]}\n{member_data[4]}\n{member_data[5]}')
                 embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
                 embed.set_author(name=str(member))
@@ -448,7 +450,7 @@ class MainCog(commands.Cog):
 
     @commands.command()
     async def invite(self, ctx):
-        embed = discord.Embed(title=lang()[await get_guild_language(ctx)]['Invite'], url=config()["invite"],
+        embed = discord.Embed(title=lang[await get_guild_language(ctx)]['Invite'], url=config["invite"],
                               color=0x7289da)
         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
@@ -456,7 +458,7 @@ class MainCog(commands.Cog):
     @bot.event
     async def on_ready():
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                            name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+                                                            name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}", start=time.time()))
         print('TimeSlow инициализирован')
 
     @commands.Cog.listener()
@@ -464,22 +466,22 @@ class MainCog(commands.Cog):
         try:
             language = await get_guild_language(ctx)
         except TypeError:
-            language = 'en'
+            language = 'ru'
         if isinstance(error, commands.CommandNotFound):
             pass
             # await ctx.send(str(lang()[language]["UnKnCommand"]))
             # await ctx.message.add_reaction(disagree_emoji())
 
         if isinstance(error, commands.BadArgument):
-            await ctx.send(str(lang()[language]["BArg"]))
+            await ctx.send(str(lang[language]["BArg"]))
             await ctx.message.add_reaction(disagree_emoji())
 
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(str(lang()[language]["MissReqArg"]))
+            await ctx.send(str(lang[language]["MissReqArg"]))
             await ctx.message.add_reaction(disagree_emoji())
 
         if isinstance(error, commands.CheckFailure):
-            await ctx.send(str(lang()[language]["AccessDenied"]))
+            await ctx.send(str(lang[language]["AccessDenied"]))
             await ctx.message.add_reaction(disagree_emoji())
 
     @commands.Cog.listener()
@@ -502,7 +504,7 @@ class MainCog(commands.Cog):
             print('DataBaseError', guild.name, guild.id, datetime.date())
             await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.date()}')
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                            name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+                                                            name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}"))
         log_chan = bot.get_channel(810967184397434921)
         embed = discord.Embed(title=f"Присоединился к {guild.name} ({guild.id})", colour=discord.Colour.blurple())
         embed.set_author(name="", icon_url=guild.icon_url)
@@ -511,7 +513,7 @@ class MainCog(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                            name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+                                                            name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}"))
         log_chan = bot.get_channel(810967184397434921)
         embed = discord.Embed(title=f"Вышел с  {guild.name} ({guild.id})", colour=discord.Colour.blurple())
         embed.set_author(name="", icon_url=guild.icon_url)
@@ -531,12 +533,12 @@ class MainCog(commands.Cog):
         try:
             async with aiohttp.ClientSession() as session:
                 res = await session.post(f"https://api.server-discord.com/v2/bots/{750415350348382249}/stats",
-                                         headers={"Authorization": f"SDC {config()['SDCtoken']}"},
+                                         headers={"Authorization": f"SDC {config['SDCtoken']}"},
                                          data={"shards": bot.shard_count or 1, "servers": len(bot.guilds)})
                 print("SDC Status updated:", await res.json())
             await asyncio.sleep(1)
             await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                                     name=f"{config()['prefix']}help | Серверов: {len(bot.guilds)}"))
+                                                                     name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}"))
         except Exception as error:
             print(error)
 
@@ -545,4 +547,4 @@ bot.add_cog(MainCog(bot))
 bot.add_cog(WorkWithGuildsDB(bot))
 bot.add_cog(MuteChannels(bot))
 bot.add_cog(WorkWithMemberDB(bot))
-bot.run(config()["token"])
+bot.run(config["token"])

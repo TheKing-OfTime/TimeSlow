@@ -6,22 +6,26 @@ import sqlite3
 import re
 
 
-def config():
+def Config():
     with open('Config.json', 'r') as read_file:
         return json.load(read_file)
 
 
-def lang():
+def Lang():
     with open('Language.json', 'r', encoding='utf-8') as read_file:
         return json.load(read_file)
 
 
+config = Config()
+lang = Lang()
+
 data = sqlite3.connect("Data.db")
-bot = commands.Bot(command_prefix=config()["prefix"])
+bot = commands.Bot(command_prefix=config["prefix"],
+                   intents=discord.Intents(guilds=True, messages=True, typing=False, emojis=True))
 
 
 def developer():
-    return bot.get_user(config()["devID"])
+    return bot.get_user(config["devID"])
 
 
 async def db_dump_req(sql_request):
@@ -50,7 +54,8 @@ async def db_valid_cheker(ctx):
     if count == 1:
         return True
     elif count == 0:
-        await ctx.send(f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config()['prefix']}setup`")
+        await ctx.send(
+            f"Что то пошло не так. Я не смог дбавить сервер в базу данных автоматически, но вы можете сделать это вручную с помощью команды `{config['prefix']}setup`")
         await ctx.message.add_reaction(disagree_emoji())
         return False
     else:
@@ -105,31 +110,48 @@ def disagree_emoji():
 
 
 async def is_developer(ctx):
-    return ctx.author.id == config()["devID"]
+    return ctx.author.id == config["devID"]
 
 
 async def is_Moderator(ctx):
-    return ctx.author.id == config()["devID"] or ctx.author.guild_permissions.manage_guild
+    return ctx.author.id == config["devID"] or ctx.author.guild_permissions.manage_guild
 
 
 async def is_Admin(ctx):
-    return ctx.author.id == config()["devID"] or ctx.author.guild_permissions.administrator
+    return ctx.author.id == config["devID"] or ctx.author.guild_permissions.administrator
 
 
 async def help_list(ctx):
-    embed = discord.Embed(title=f'{lang()[await get_guild_language(ctx)]["Help"]}', color=discord.Colour.blurple(), description="Структура команд `имя[Псевдонимы]{обязательный аргумент}(не обязатнльный аргумент)`")
-    embed.add_field(name=f"Доступные всем:", value="`ping`   Вывод задержки \n`guildinfo[serverinfo, sinfo, ginfo]`   Информация о сервере \n`memberinfo[minfo]{member}`   Информация о пользователе \n`invite`   Пригласить бота к себе на сервер", inline=False)
+    embed = discord.Embed(title=f'{lang[await get_guild_language(ctx)]["Help"]}', color=discord.Colour.blurple(),
+                          description="Структура команд `имя[Псевдонимы]{обязательный аргумент}(не обязатнльный аргумент)`")
+    embed.add_field(name=f"Доступные всем:",
+                    value="`ping`   Вывод задержки \n`guildinfo[serverinfo, sinfo, ginfo]`   Информация о сервере \n`memberinfo[minfo]{member}`   Информация о пользователе \n`invite`   Пригласить бота к себе на сервер",
+                    inline=False)
     if await is_Moderator(ctx):
-        embed.add_field(name=f"Доступные модераторам:", value="`slowdown[sd]{member}{interval}(minutes)`   Включить медленный режим у пользователя \n`unslowdown[usd]{member}`   Выключить медленный режим у пользователя", inline=False)
+        embed.add_field(name=f"Доступные модераторам:",
+                        value="`slowdown[sd]{member}{interval}(minutes)`   Включить медленный режим у пользователя \n`unslowdown[usd]{member}`   Выключить медленный режим у пользователя\n`channelslowdown[chsd]{member}{interval}(minutes)`   Включить медленный режим в канале \n`channelunslowdown[chusd]{member}`   Выключить медленный режим в канале",
+                        inline=False)
     if await is_Admin(ctx):
-        embed.add_field(name=f"Доступные администраторам:", value="`settings[s]{option}{value}`   Изменить параметры работы бота *больше информации ts!help settings* \n`setup`   Команд для первой инициализации, если она не смогла пройти автоматически", inline=False)
+        embed.add_field(name=f"Доступные администраторам:",
+                        value="`settings[s]{option}{value}`   Изменить параметры работы бота *больше информации ts!help settings* \n`setup`   Команд для первой инициализации, если она не смогла пройти автоматически",
+                        inline=False)
     embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
     await ctx.send(embed=embed)
 
+
 async def help_settings(ctx):
-    embed = discord.Embed(title=f'{lang()[await get_guild_language(ctx)]["Help"]}', color=discord.Colour.blurple(),description='settings[s]{option}{value}')
-    embed.add_field(name=f"Режим работы", value='`ts!settings mod {value}`\n`1`: При выходе за таймер сообщение удаляется\n`2`: Первый режим + отправка удалённого сообщения в ЛС\n`3`: Выдача мута пользовтелю на время таймера', inline=False)
-    embed.add_field(name=f"Канал логирования", value='`ts!settings log_channel {value}`\n`Канал`: Установка заданного канала как "Канала логирования"', inline=False)
-    embed.add_field(name=f"Роль мута", value='`ts!settings mute_role {value}`\n`Роль`: Установка заданной роли как "Роли мута"', inline=False)
-    embed.add_field(name=f"Язык", value='`ts!settings language {value}`\n`ru`: Установка русского языка\n`en`: Установка английского языка **НЕ рекомендуется**', inline=False)
+    embed = discord.Embed(title=f'{lang[await get_guild_language(ctx)]["Help"]}', color=discord.Colour.blurple(),
+                          description='settings[s]{option}{value}')
+    embed.add_field(name=f"Режим работы",
+                    value='`ts!settings mod {value}`\n`1`: При выходе за таймер сообщение удаляется\n`2`: Первый режим + отправка удалённого сообщения в ЛС\n`3`: Выдача мута пользовтелю на время таймера',
+                    inline=False)
+    embed.add_field(name=f"Канал логирования",
+                    value='`ts!settings log_channel {value}`\n`Канал`: Установка заданного канала как "Канала логирования"',
+                    inline=False)
+    embed.add_field(name=f"Роль мута",
+                    value='`ts!settings mute_role {value}`\n`Роль`: Установка заданной роли как "Роли мута"',
+                    inline=False)
+    embed.add_field(name=f"Язык",
+                    value='`ts!settings language {value}`\n`ru`: Установка русского языка\n`en`: Установка английского языка **НЕ рекомендуется**',
+                    inline=False)
     await ctx.send(embed=embed)
