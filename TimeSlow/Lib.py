@@ -3,6 +3,7 @@ from datetime import datetime
 from discord.ext import commands
 import json
 import sqlite3
+from sys import version_info
 import re
 
 
@@ -21,7 +22,7 @@ lang = Lang()
 
 data = sqlite3.connect("Data.db")
 bot = commands.Bot(command_prefix=config["prefix"],
-                   intents=discord.Intents(guilds=True, messages=True, typing=False, emojis=True))
+                   intents=discord.Intents(guilds=True, messages=True, typing=False, emojis=True, members=True))
 
 
 def developer():
@@ -123,9 +124,9 @@ async def is_Admin(ctx):
 
 async def help_list(ctx):
     embed = discord.Embed(title=f'{lang[await get_guild_language(ctx)]["Help"]}', color=discord.Colour.blurple(),
-                          description="Структура команд `имя[Псевдонимы]{обязательный аргумент}(не обязатнльный аргумент)`")
-    embed.add_field(name=f"Доступные всем:",
-                    value="`ping`   Вывод задержки \n`guildinfo[serverinfo, sinfo, ginfo]`   Информация о сервере \n`memberinfo[minfo]{member}`   Информация о пользователе \n`invite`   Пригласить бота к себе на сервер",
+                          description="Структура команд `имя[Псевдонимы]{обязательный аргумент}(не обязатнльный аргумент)`\n Если у вас остались вопросы, то можете смело заходить на [сервер поддержки](https://discord.gg/8epHXKA)")
+    embed.add_field(name=f"Общие:",
+                    value="`ping`   Вывод задержки \n`guildinfo[serverinfo, sinfo, ginfo]`   Информация о сервере \n`memberinfo[minfo]{member}`   Информация о пользователе \n`invite[i]`   Пригласить бота к себе на сервер\n`about[d]`   Краткое описание и техническая информация\n`donate[d]`   Если вдруг захочеся поддержать автора",
                     inline=False)
     if await is_Moderator(ctx):
         embed.add_field(name=f"Доступные модераторам:",
@@ -133,7 +134,7 @@ async def help_list(ctx):
                         inline=False)
     if await is_Admin(ctx):
         embed.add_field(name=f"Доступные администраторам:",
-                        value="`settings[s]{option}{value}`   Изменить параметры работы бота *больше информации ts!help settings* \n`setup`   Команд для первой инициализации, если она не смогла пройти автоматически",
+                        value="`settings[s]{option}{value}`   Изменить параметры работы бота *больше информации ts!help settings* \n`setup`   Команда для первой инициализации, если она не смогла пройти автоматически",
                         inline=False)
     embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
     await ctx.send(embed=embed)
@@ -154,4 +155,15 @@ async def help_settings(ctx):
     embed.add_field(name=f"Язык",
                     value='`ts!settings language {value}`\n`ru`: Установка русского языка\n`en`: Установка английского языка **НЕ рекомендуется**',
                     inline=False)
+    await ctx.send(embed=embed)
+
+
+async def about_message(ctx):
+    embed = discord.Embed(title="О приложении",
+                          description="Основной задачей бота на данный момент является борьба с оверпостерами.",
+                          colour=discord.Colour.blurple())
+    embed.add_field(name="Версия бота", value=config["bot_version"])
+    embed.add_field(name="Версия discord.py", value=discord.__version__)
+    embed.add_field(name="Версия Python", value=f"{version_info.major}.{version_info.minor}.{version_info.micro}")
+    embed.set_footer(text=f"Разработчик: TheKingOfTime#5595", icon_url="https://images-ext-2.discordapp.net/external/ymzuQwwUcu76ZYHHGtkwbln1ijE025FCtqgtZfrsmIM/%3Fsize%3D2048/https/cdn.discordapp.com/avatars/500020124515041283/e8364a838285245b1af76b9250ec2d55.webp")
     await ctx.send(embed=embed)

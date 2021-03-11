@@ -58,7 +58,7 @@ class WorkWithGuildsDB(commands.Cog):
                 language = "ru"
             else:
                 language = "en"
-            guildvalues = (ctx.guild.id, str(ctx.guild.name), 1, datetime.now(), bool(1), 0, 0, language)
+            guildvalues = (ctx.guild.id, str(ctx.guild.name), 1, time.time(), bool(1), 0, 0, language)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
@@ -92,6 +92,9 @@ class WorkWithGuildsDB(commands.Cog):
     @commands.command(aliases=['Settings', 's'])
     @commands.check(is_Admin)
     async def settings(self, ctx, option, value):
+        cur = data.cursor()
+        cur.execute(f"SELECT * FROM guilds WHERE id={ctx.guild.id}")
+        guild_data = cur.fetchone()
         mod_possible_value = [1, 2, 3]
         language_possible_value = ['ru', 'en']
         if await db_valid_cheker(ctx):
@@ -99,7 +102,11 @@ class WorkWithGuildsDB(commands.Cog):
             if option == config["db_guild_possible_options"][0]:
                 if mod_possible_value.count(int(value)) == 1:
                     await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
-                    await ctx.message.add_reaction(agree_emoji())
+                    if int(value) == 3 and ctx.guild.get_role(int(guild_data[5])) is None:
+                        await ctx.message.add_reaction(warning_emoji())
+                        await ctx.send("Роль мута не назначена, данный режим не сможет рабоать без неё.\nЧтобы установить роль мута используйте `ts!settings mute_role {роль}` (в качестве аргумента комманды нужно использовать упоминание или ID).")
+                    else:
+                        await ctx.message.add_reaction(agree_emoji())
                 else:
                     await ctx.send(
                         f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
@@ -200,8 +207,18 @@ class WorkWithMemberDB(commands.Cog):
                             await db_dump_req(
                                 f"UPDATE mutemembers SET in_interval = {bool(0)} WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
 
-                    elif guild_data[3] == 3:
-                        pass
+                    elif guild_data[2] == 3:
+                        mute_role = message.guild.get_role(int(guild_data[5]))
+                        if int(member_data[2]) == 1:
+                            pass
+                        else:
+                            await db_dump_req(
+                                f"UPDATE mutemembers SET in_interval = {bool(1)} WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
+                            await message.author.add_roles(mute_role)
+                            await asyncio.sleep(member_data[4])
+                            await db_dump_req(
+                                f"UPDATE mutemembers SET in_interval = {bool(0)} WHERE id = {message.author.id} AND guild_id = {message.guild.id}")
+                            await message.author.remove_roles(mute_role)
 
     @commands.command(aliases=['Slowdown', 'sd'])
     @commands.check(is_Moderator)
@@ -448,17 +465,26 @@ class MainCog(commands.Cog):
                               color=color)
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(aliases=["Invite", "i"])
     async def invite(self, ctx):
         embed = discord.Embed(title=lang[await get_guild_language(ctx)]['Invite'], url=config["invite"],
                               color=0x7289da)
         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
 
-    @bot.event
-    async def on_ready():
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                            name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}", start=time.time()))
+    @commands.command(aliases=["About", "a"])
+    async def about(self, ctx):
+        await about_message(ctx)
+
+    @commands.command(aliases=["d", 'Donate'])
+    async def donate(self, ctx):
+        embed = discord.Embed(title="Донат", description="Если вам вдруг захочется поддержать автора проекта, то вы смело можете это сделать:\n[QIWI](https://qiwi.com/n/THEKINGOFTIME)\nНа карту: 4276400029387983", colour=discord.Colour.from_rgb(217, 171, 42))
+        embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+        await ctx.send(embed=embed)
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print(f"Guilds: {len(bot.guilds)}")
         print('TimeSlow инициализирован')
 
     @commands.Cog.listener()
@@ -486,13 +512,23 @@ class MainCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
+        try:
+            log_chan = bot.get_channel(810967184397434921)
+            embed = discord.Embed(title=f"Вошёл в  {guild.name} ({guild.id})", colour=discord.Colour.blurple())
+            embed.set_author(name=guild.name, icon_url=guild.icon_url)
+            await log_chan.send(embed=embed)
+        except Exception as error:
+            print(f'Logger error: {error}')
+            log_chan = bot.get_channel(810967184397434921)
+            await log_chan.send(f'Logger error: {error}')
+        print(f'Guild join {guild.id} {guild.name}')
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {guild.id}")
         if count == 0:
             if str(guild.region) == "russia":
                 language = "ru"
             else:
                 language = "en"
-            guildvalues = (guild.id, str(guild.name), 2, datetime.now(), bool(1), 0, 0, language)
+            guildvalues = (guild.id, str(guild.name), 2, time.time(), bool(1), 0, 0, language)
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
@@ -503,21 +539,18 @@ class MainCog(commands.Cog):
         else:
             print('DataBaseError', guild.name, guild.id, datetime.date())
             await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.date()}')
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                            name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}"))
-        log_chan = bot.get_channel(810967184397434921)
-        embed = discord.Embed(title=f"Присоединился к {guild.name} ({guild.id})", colour=discord.Colour.blurple())
-        embed.set_author(name="", icon_url=guild.icon_url)
-        await log_chan.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
-                                                            name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}"))
-        log_chan = bot.get_channel(810967184397434921)
-        embed = discord.Embed(title=f"Вышел с  {guild.name} ({guild.id})", colour=discord.Colour.blurple())
-        embed.set_author(name="", icon_url=guild.icon_url)
-        await log_chan.send(embed=embed)
+        try:
+            log_chan = bot.get_channel(810967184397434921)
+            embed = discord.Embed(title=f"Вышел с  {guild.name} ({guild.id})", colour=discord.Colour.blurple())
+            embed.set_author(name=guild.name, icon_url=guild.icon_url)
+            await log_chan.send(embed=embed)
+        except Exception as error:
+            print(f'Logger error: {error}')
+            log_chan = bot.get_channel(810967184397434921)
+            await log_chan.send(f'Logger error: {error}')
         print(f'Guild remove {guild.id} {guild.name}')
 
     @commands.Cog.listener()
@@ -539,7 +572,9 @@ class MainCog(commands.Cog):
             await asyncio.sleep(1)
             await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
                                                                      name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}"))
+            print("Status updated")
         except Exception as error:
+            print("Error:")
             print(error)
 
 
