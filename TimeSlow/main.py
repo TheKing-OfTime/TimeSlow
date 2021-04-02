@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+
 from Lib import *
 import discord
 import aiohttp
@@ -7,6 +8,7 @@ import time
 from datetime import datetime
 from discord.ext import commands
 from discord.ext.tasks import loop
+
 
 bot.remove_command("help")
 
@@ -47,7 +49,11 @@ class WorkWithGuildsDB(commands.Cog):
     @commands.command()
     @commands.check(is_Admin)
     async def setup(self, ctx):
-        embed = discord.Embed(title="Инициализация", description="Пожалуйста подождите...",
+        try:
+            guild_language = await get_guild_language(ctx)
+        except:
+            guild_language = "en"
+        embed = discord.Embed(title=f"{loading_emoji()} Инициализация", description="Пожалуйста подождите...",
                               colour=discord.Colour.blurple())
         emb_message = await ctx.send(embed=embed)
         await asyncio.sleep(1)
@@ -95,63 +101,66 @@ class WorkWithGuildsDB(commands.Cog):
         cur = data.cursor()
         cur.execute(f"SELECT * FROM guilds WHERE id={ctx.guild.id}")
         guild_data = cur.fetchone()
+        db_guild_possible_options = ["mod", "mute_role", "log_channel", "language"]
         mod_possible_value = [1, 2, 3]
         language_possible_value = ['ru', 'en']
         if await db_valid_cheker(ctx):
             language = await get_guild_language(ctx)
-            if option == config["db_guild_possible_options"][0]:
-                if mod_possible_value.count(int(value)) == 1:
-                    await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
-                    if int(value) == 3 and ctx.guild.get_role(int(guild_data[5])) is None:
-                        await ctx.message.add_reaction(warning_emoji())
-                        await ctx.send("Роль мута не назначена, данный режим не сможет рабоать без неё.\nЧтобы установить роль мута используйте `ts!settings mute_role {роль}` (в качестве аргумента комманды нужно использовать упоминание или ID).")
-                    else:
-                        await ctx.message.add_reaction(agree_emoji())
-                else:
-                    await ctx.send(
-                        f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
-                    await ctx.message.add_reaction(disagree_emoji())
-
-            elif option == config["db_guild_possible_options"][1]:
-                if value != '0':
-                    role = convert_to_role(ctx.guild, value)
-                    if role is not None:
-                        role_id = role.id
+            if option in db_guild_possible_options:
+                if option == db_guild_possible_options[0]:
+                    if int(value) in mod_possible_value:
+                        await db_dump_req(f"UPDATE guilds SET mod = {int(value)} WHERE id = {ctx.guild.id};")
+                        if int(value) == 3 and ctx.guild.get_role(int(guild_data[5])) is None:
+                            await ctx.message.add_reaction(warning_emoji())
+                            await ctx.send("Роль мута не назначена, данный режим не сможет рабоать без неё.\nЧтобы установить роль мута используйте `ts!settings mute_role {роль}` (в качестве аргумента комманды нужно использовать упоминание или ID).")
+                        else:
+                            await ctx.message.add_reaction(agree_emoji())
                     else:
                         await ctx.send(
                             f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
                         await ctx.message.add_reaction(disagree_emoji())
-                else:
-                    role_id = 0
-                await db_dump_req(f"UPDATE guilds SET mute_role_id = {int(role_id)} WHERE id = {ctx.guild.id};")
-                await ctx.message.add_reaction(agree_emoji())
 
-            elif option == config["db_guild_possible_options"][2]:
-                if value != '0':
-                    txtchannel = convert_to_channel(value)
-                    if txtchannel is not None:
-                        channelid = txtchannel.id
+                elif option == db_guild_possible_options[1]:
+                    if value != '0':
+                        role = convert_to_role(ctx.guild, value)
+                        if role is not None:
+                            role_id = role.id
+                        else:
+                            await ctx.send(
+                                f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
+                            await ctx.message.add_reaction(disagree_emoji())
                     else:
-                        await ctx.send(
-                            f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
-                        await ctx.message.add_reaction(disagree_emoji())
-                else:
-                    channelid = 0
-                await db_dump_req(f"UPDATE guilds SET log_channel_id = {int(channelid)} WHERE id = {ctx.guild.id};")
-                await ctx.message.add_reaction(agree_emoji())
-
-            elif option == config["db_guild_possible_options"][3]:
-                if language_possible_value.count(str(value)) == 1:
-                    await db_dump_req(f'UPDATE guilds SET language = "{value}" WHERE id = {ctx.guild.id};')
+                        role_id = 0
+                    await db_dump_req(f"UPDATE guilds SET mute_role_id = {int(role_id)} WHERE id = {ctx.guild.id};")
                     await ctx.message.add_reaction(agree_emoji())
-                else:
-                    await ctx.send(
-                        f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
-                    await ctx.message.add_reaction(disagree_emoji())
+
+                elif option == db_guild_possible_options[2]:
+                    if value != '0':
+                        txtchannel = convert_to_channel(value)
+                        if txtchannel is not None:
+                            channelid = txtchannel.id
+                        else:
+                            await ctx.send(
+                                f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
+                            await ctx.message.add_reaction(disagree_emoji())
+                    else:
+                        channelid = 0
+                    await db_dump_req(f"UPDATE guilds SET log_channel_id = {int(channelid)} WHERE id = {ctx.guild.id};")
+                    await ctx.message.add_reaction(agree_emoji())
+
+                elif option == db_guild_possible_options[3]:
+                    if value in language_possible_value:
+                        await db_dump_req(f'UPDATE guilds SET language = "{value}" WHERE id = {ctx.guild.id};')
+                        await ctx.message.add_reaction(agree_emoji())
+                    else:
+                        await ctx.send(
+                            f"{lang[language]['Parameter']} `{option}` {lang[language]['CannotSet']} `{value}`")
+                        await ctx.message.add_reaction(disagree_emoji())
 
             else:
-                await ctx.send(f"{lang()[language]['Parameter']} `{option}` {lang[language]['NotFound']}")
+                await ctx.send(f"{lang[language]['Parameter']} `{option}` {lang[language]['NotFound']}")
                 await ctx.message.add_reaction(disagree_emoji())
+
 
     @commands.command(aliases=['sql'])
     @commands.check(is_developer)
@@ -435,13 +444,12 @@ class MuteChannels(commands.Cog):
 
 
 class MainCog(commands.Cog):
+    print("Инициализация")
 
     def __init__(self, bot):
         self.bot = bot
-        self.monitorings.start()
         self.uptime = time.time()
-
-    print("Инициализация")
+        self.monitorings.start()
 
     @commands.command(aliases=["Help", "h"])
     async def help(self, ctx, arg1=None):
@@ -452,6 +460,7 @@ class MainCog(commands.Cog):
 
     @commands.command()
     async def ping(self, ctx):
+        glang = await get_guild_language(ctx)
         uptime = time.gmtime(time.time() - self.uptime)
         ping = round(bot.latency * 1000, 2)
         if ping < 160:
@@ -460,8 +469,8 @@ class MainCog(commands.Cog):
             color = discord.Colour.orange()
         else:
             color = discord.Colour.red()
-        embed = discord.Embed(title=f"Понг!",
-                              description=f"Пинг: `{ping}ms`\nUptime {uptime.tm_hour + ((uptime.tm_mday - 1) * 24)}h {uptime.tm_min}m {uptime.tm_sec}s",
+        embed = discord.Embed(title=f"{lang[glang]['Pong']}!",
+                              description=f"{lang[glang]['Ping']}: `{ping}ms`\nUptime {uptime.tm_hour + ((uptime.tm_mday - 1) * 24)}h {uptime.tm_min}m {uptime.tm_sec}s",
                               color=color)
         await ctx.send(embed=embed)
 
@@ -478,14 +487,82 @@ class MainCog(commands.Cog):
 
     @commands.command(aliases=["d", 'Donate'])
     async def donate(self, ctx):
-        embed = discord.Embed(title="Донат", description="Если вам вдруг захочется поддержать автора проекта, то вы смело можете это сделать:\n[QIWI](https://qiwi.com/n/THEKINGOFTIME)\nНа карту: 4276400029387983", colour=discord.Colour.from_rgb(217, 171, 42))
-        embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+        language = await get_guild_language(ctx)
+        if language == "ru":
+            embed = discord.Embed(title="Донат",
+                                  description="Если вам вдруг захочется поддержать автора проекта, то вы смело можете это сделать:\n[QIWI](https://qiwi.com/n/THEKINGOFTIME)\nНа карту: 4276400029387983",
+                                  colour=discord.Colour.from_rgb(217, 171, 42))
+            embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+        else:
+            embed = discord.Embed(title="Donate",
+                                  description="Donation unavailable in your country",
+                                  colour=discord.Colour.from_rgb(217, 171, 42))
+            embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=["Discord_status", "Discordstatus", "discordstatus", "dstats", "ds"])
+    async def discord_status(self, ctx, arg=None, arg2: int = 0):
+        mymess = await ctx.send(loading_emoji())
+        aliases1_arg1 = ["detail", "more", "d", "m"]
+        aliases2_arg1 = ["last", "l"]
+
+        async with aiohttp.ClientSession() as session:
+            if arg not in aliases2_arg1:
+                res = await session.get(url="https://srhpyqt94yxb.statuspage.io/api/v2/status.json")
+                data_status = await res.json()
+                res = await session.get(url="https://srhpyqt94yxb.statuspage.io/api/v2/components.json")
+                data_components = await res.json()
+            else:
+                if int(arg2) > 50 or int(arg2) < 0:
+                    await mymess.delete()
+                    raise commands.BadArgument
+                res = await session.get(url="https://srhpyqt94yxb.statuspage.io/api/v2/incidents.json")
+                data_incidents = await res.json()
+                last_incident = data_incidents["incidents"][int(arg2)]
+        if arg not in aliases2_arg1:
+            if data_status["status"]['indicator'] == "none":
+                colour = discord.Colour.green()
+            elif data_status["status"]['indicator'] == ("minor" or "major"):
+                colour = discord.Colour.orange()
+            else:
+                colour = discord.Colour.red()
+        else:
+            colour = discord.Colour.blurple()
+
+        embed = discord.Embed(description="[More info](https://discordstatus.com)")
+        if arg not in aliases2_arg1:
+            embed.title = data_status["status"]["description"]
+            embed.colour = colour
+            for component in data_components["components"]:
+                if component["status"] != "operational" or arg in aliases1_arg1:
+                    embed.add_field(name=component["name"], value=component["status"])
+        else:
+            embed.title = "Last incident"
+            embed.description = f"[More info]({last_incident['shortlink']})"
+            embed.colour = discord.Colour.blurple()
+            embed.add_field(name="Name", value=last_incident["name"], inline=False)
+            embed.add_field(name="Status", value=last_incident["status"], inline=False)
+            embed.add_field(name="ID", value=last_incident["id"], inline=False)
+        embed.set_thumbnail(url="https://dka575ofm4ao0.cloudfront.net/pages-transactional_logos/retina/15011/logo.png")
+        await mymess.edit(content=None, embed=embed)
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"Guilds: {len(bot.guilds)}")
         print('TimeSlow инициализирован')
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        current_content = message.content.lower()
+        current_content = current_content.replace(" ", "")
+        if (("пидор" in current_content) or ("пидар" in current_content)) and developer() in message.mentions:
+            try:
+                await message.add_reaction("🇳")
+                await message.add_reaction("🇴")
+                await message.add_reaction("⬛")
+                await message.add_reaction("🇺")
+            except:
+                await message.reply(":regional_indicator_n::regional_indicator_o:⬛🇺")
+
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -513,15 +590,11 @@ class MainCog(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
         try:
-            log_chan = bot.get_channel(810967184397434921)
             embed = discord.Embed(title=f"Вошёл в  {guild.name} ({guild.id})", colour=discord.Colour.blurple())
             embed.set_author(name=guild.name, icon_url=guild.icon_url)
-            await log_chan.send(embed=embed)
+            await bot.get_channel(810967184397434921).send(embed=embed)
         except Exception as error:
-            print(f'Logger error: {error}')
-            log_chan = bot.get_channel(810967184397434921)
-            await log_chan.send(f'Logger error: {error}')
-        print(f'Guild join {guild.id} {guild.name}')
+            await bot.get_channel(810967184397434921).send(f'Logger error: {error}')
         count = await db_load_req(f"SELECT COUNT(*) as count FROM guilds WHERE id = {guild.id}")
         if count == 0:
             if str(guild.region) == "russia":
@@ -532,50 +605,46 @@ class MainCog(commands.Cog):
             cur = data.cursor()
             cur.execute("INSERT INTO guilds VALUES(?, ?, ?, ?, ?, ?, ?, ?);", guildvalues)
             data.commit()
-            print(f'Guild logged {guild.id} {guild.name}')
         elif count == 1:
             pass
 
         else:
-            print('DataBaseError', guild.name, guild.id, datetime.date())
-            await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.date()}')
+            await developer().send(f'DataBaseError {guild.name} {guild.id} {datetime.now()}')
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         try:
-            log_chan = bot.get_channel(810967184397434921)
             embed = discord.Embed(title=f"Вышел с  {guild.name} ({guild.id})", colour=discord.Colour.blurple())
             embed.set_author(name=guild.name, icon_url=guild.icon_url)
-            await log_chan.send(embed=embed)
+            await bot.get_channel(810967184397434921).send(embed=embed)
         except Exception as error:
-            print(f'Logger error: {error}')
-            log_chan = bot.get_channel(810967184397434921)
-            await log_chan.send(f'Logger error: {error}')
-        print(f'Guild remove {guild.id} {guild.name}')
+            await bot.get_channel(810967184397434921).send(f'Logger error: {error}')
 
     @commands.Cog.listener()
     async def on_command(self, ctx):
-        log_chan = bot.get_channel(810967123752255518)
-        embed = discord.Embed(title=f"Использованна команда {ctx.command}", colour=discord.Colour.blurple())
+        args = ctx.args[2:]
+        embed = discord.Embed(title=f"Использованна команда", colour=discord.Colour.blurple(), description="ts!{0} {1}".format(ctx.command, args))
         embed.set_footer(text=f"{ctx.author} ({ctx.author.id})", icon_url=ctx.author.avatar_url)
         embed.set_author(name=f"{ctx.guild.name} ({ctx.guild.id})", icon_url=ctx.guild.icon_url)
-        await log_chan.send(embed=embed)
+        await bot.get_channel(810967123752255518).send(embed=embed)
 
     @loop(hours=1)
     async def monitorings(self):
+        await asyncio.sleep(5)
         try:
             async with aiohttp.ClientSession() as session:
                 res = await session.post(f"https://api.server-discord.com/v2/bots/{750415350348382249}/stats",
                                          headers={"Authorization": f"SDC {config['SDCtoken']}"},
                                          data={"shards": bot.shard_count or 1, "servers": len(bot.guilds)})
-                print("SDC Status updated:", await res.json())
+                await bot.get_channel(810967184397434921).send(f"SDC Status updated: {await res.json()}")
+                await session.close()
             await asyncio.sleep(1)
-            await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening,
+            await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,
                                                                      name=f"{config['prefix']}help | Серверов: {len(bot.guilds)}"))
-            print("Status updated")
+            await bot.get_channel(810967184397434921).send("Presence updated")
         except Exception as error:
-            print("Error:")
-            print(error)
+            await bot.get_channel(810967184397434921).send("Error in presence update:")
+            await bot.get_channel(810967184397434921).send(error)
 
 
 bot.add_cog(MainCog(bot))

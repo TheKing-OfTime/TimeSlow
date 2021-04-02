@@ -20,7 +20,13 @@
     "LChann": "Log channel",
     "Lang": "Language",
     "Help": "Help",
-    "Invite": "Invite bot"
+    "Invite": "Invite bot",
+    "Developer": "Developer",
+    "Bot_Version": "Bot version",
+    "discord.py_Version": "Discord.py version",
+    "Python_version": "Python version",
+    "About_title": "About",
+    "About_description":"The main task of the bot at the moment is to fight against overposters."
   },
   "ru": {
     "UnKnCommand": "Неизвестная команда",
@@ -43,6 +49,12 @@
     "LChann": "Канал логирования",
     "Lang": "Язык",
     "Help": "Помощь",
-    "Invite": "Пригласить бота"
+    "Invite": "Пригласить бота",
+    "Developer": "Разработчик",
+    "Bot_Version": "Версия бота",
+    "discord.py_Version": "Версия discord.py",
+    "Python_version": "Версия Python",
+    "About_title": "О приложении",
+    "About_description":"Основной задачей бота на данный момент является борьба с оверпостерами."
   }
 }
