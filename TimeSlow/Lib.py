@@ -8,19 +8,19 @@ import re
 
 
 def Config():
-    with open('Config.json', 'r') as read_file:
+    with open('c:/Ya/DiscordBot/TimeSlow/Config.json', 'r') as read_file:
         return json.load(read_file)
 
 
 def Lang():
-    with open('Language.json', 'r', encoding='utf-8') as read_file:
+    with open(f'c:/Ya/DiscordBot/TimeSlow/Language.json', 'r', encoding='utf-8') as read_file:
         return json.load(read_file)
 
 
 config = Config()
 lang = Lang()
 
-data = sqlite3.connect("Data.db")
+data = sqlite3.connect("c:/Ya/DiscordBot/TimeSlow/Data.db")
 bot = commands.Bot(command_prefix=config["prefix"],
                    intents=discord.Intents(guilds=True, messages=True, typing=False, emojis=True, members=True))
 
@@ -114,15 +114,19 @@ def loading_emoji():
     return bot.get_emoji(819668569058443275)
 
 
-async def is_developer(ctx):
+def is_pidor():
+    return 0
+
+
+def is_developer(ctx):
     return ctx.author.id == config["devID"]
 
 
-async def is_Moderator(ctx):
+def is_Moderator(ctx):
     return ctx.author.id == config["devID"] or ctx.author.guild_permissions.manage_guild
 
 
-async def is_Admin(ctx):
+def is_Admin(ctx):
     return ctx.author.id == config["devID"] or ctx.author.guild_permissions.administrator
 
 
