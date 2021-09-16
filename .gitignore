@@ -3,4 +3,5 @@
 *.gif
 *.db
 *.bat
+DB_Editor.py
 *__pycache__/
