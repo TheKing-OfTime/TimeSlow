@@ -1,5 +1,5 @@
 /Config.json
 /Data.db
 /DB_Editor.py
-*.gif
-*.bat
+.gif
+.bat
