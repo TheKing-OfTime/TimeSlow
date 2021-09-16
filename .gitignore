@@ -1,7 +1,6 @@
-/Config.json
-/Data.db
-/DB_Editor.py
-/loading_gif.gif.gif
-/start.bat
-/test.json
-/.idea
+.idea
+*.json
+*.gif
+*.db
+*.bat
+*__pycache__/
